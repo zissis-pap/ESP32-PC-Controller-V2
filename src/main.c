@@ -6,10 +6,7 @@
 #include <definitions.h>
 #include <system.h>
 #include <string.h>
-
-// #include <sys/time.h>
-// #include "esp_netif.h"
-
+#include <time_keep.h>
 
 
 void app_main()
@@ -21,12 +18,10 @@ void app_main()
     SetupSystem(&SystemConfig);
     InitAction(&dev);
 
-    
-    
-    
 
     while(1)
     {
+        displayTime(&dev);
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
     esp_restart(); // If main task exits, restart the system

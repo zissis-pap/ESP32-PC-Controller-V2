@@ -14,8 +14,8 @@ void SetupSystem(struct SetupParams* sp)
     SetupDotMatrixDisplay(sp->dev);
     max7219_print_static_text(sp->dev, "Hello!");
     wifi_init();       // Initialize Wi-Fi
-    initialize_sntp(); // Initialize SNTP
-    obtain_time();     // Fetch and print time
+    initializeSNTP(); // Initialize SNTP
+    ObtainNTPTime();     // Fetch and print time
     
 }
 void SetupNVS(void)
@@ -57,7 +57,6 @@ void SetupSPIbus(void)
 
 void InitAction(max7219_t *dev)
 {
-    
     vTaskDelay(pdMS_TO_TICKS(2000));
     max7219_scroll_text(dev, "PC Controller V2.0", 100);
 }
