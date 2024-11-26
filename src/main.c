@@ -5,6 +5,11 @@
 #include <max7219.h>
 #include <definitions.h>
 #include <system.h>
+#include <string.h>
+
+// #include <sys/time.h>
+// #include "esp_netif.h"
+
 
 
 void app_main()
@@ -15,6 +20,10 @@ void app_main()
     
     SetupSystem(&SystemConfig);
     InitAction(&dev);
+
+    
+    
+    
 
     while(1)
     {
