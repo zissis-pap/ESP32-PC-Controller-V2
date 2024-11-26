@@ -1,3 +1,5 @@
+#ifndef MAIN_H
+#define MAIN_H
 #include <max7219.h>
 
 typedef struct
@@ -7,5 +9,12 @@ typedef struct
     uint16_t delay;
 } TaskParams;
 
+typedef struct SetupParams
+{
+    max7219_t *dev;
+};
+
 void SetupSPIbus(void);
 void SetupDotMatrixDisplay(max7219_t *dev);
+
+#endif
