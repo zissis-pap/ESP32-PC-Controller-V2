@@ -1,0 +1,3 @@
+[submodule "lib/max7219"]
+	path = lib/max7219
+	url = https://github.com/zissis-pap/esp-idf-max7219.git
