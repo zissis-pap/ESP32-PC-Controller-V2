@@ -4,7 +4,7 @@
 #include <definitions.h>
 #include <keys.h>
 
-const char *TAG = "WiFi_Time";
+const char *TAG = "PC_Controller";
 
 // Event handler for Wi-Fi events
 static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) 

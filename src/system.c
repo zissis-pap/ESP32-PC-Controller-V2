@@ -14,10 +14,9 @@ void SetupSystem(struct SetupParams* sp)
     SetupDotMatrixDisplay(sp->dev);
     max7219_print_static_text(sp->dev, "Hello!");
     wifi_init();       // Initialize Wi-Fi
-    initializeSNTP(); // Initialize SNTP
-    ObtainNTPTime();     // Fetch and print time
-    
+    initializeSNTP(); // Initialize SNTP   
 }
+
 void SetupNVS(void)
 {
     esp_err_t ret = nvs_flash_init();
