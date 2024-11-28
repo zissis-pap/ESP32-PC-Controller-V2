@@ -7,6 +7,7 @@
 #include <system.h>
 #include <string.h>
 #include <time_keep.h>
+#include "telegram.h"
 
 
 void app_main()

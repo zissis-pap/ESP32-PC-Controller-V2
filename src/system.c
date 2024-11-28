@@ -5,6 +5,7 @@
 #include "system.h"
 #include "wifi.h"
 #include "time_keep.h"
+#include "telegram.h"
 
 
 void SetupSystem(struct SetupParams* sp)
@@ -14,7 +15,7 @@ void SetupSystem(struct SetupParams* sp)
     SetupDotMatrixDisplay(sp->dev);
     max7219_print_static_text(sp->dev, "Hello!");
     wifi_init();       // Initialize Wi-Fi
-    initializeSNTP(); // Initialize SNTP   
+    initializeSNTP(); // Initialize SNTP
 }
 
 void SetupNVS(void)
@@ -54,8 +55,14 @@ void SetupSPIbus(void)
     ESP_ERROR_CHECK(spi_bus_initialize(HOST, &cfg, SPI_DMA_CH_AUTO));
 }
 
+void ErrorHandler(void)
+{
+
+}
+
 void InitAction(max7219_t *dev)
 {
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    // vTaskDelay(pdMS_TO_TICKS(2000));
     max7219_scroll_text(dev, "PC Controller V2.0", 100);
+    send_telegram_message("MAXIMUS-III+power+restored!");
 }

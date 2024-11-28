@@ -5,7 +5,7 @@
 
 #include <definitions.h>
 
-extern const char *TAG;
+static const char *TAG = "SNTP";
 
 void initializeSNTP(void) 
 {
