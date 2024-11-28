@@ -3,7 +3,7 @@ This projects enables the user to control a desktop pc's power status from an ES
 
 *Initially, this project makes https requests to telegram app without certificate. Therefore, please set in the sdkconfig: "Allow potentially insecure options" -> true\
 "Skip server certificate verification by default" -> true\
-Certificate implementation is planned fo future releases*
+Certificate implementation is planned for future releases*
 
 ## Instructions
 * Download repository

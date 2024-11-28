@@ -2,10 +2,10 @@
 #include "esp_log.h"
 #include "telegram.h"
 #include "keys.h"
+#include "wifi.h"
 #include "string.h"
 
 static const char *TAG = "Telegram";
-extern bool wifi_is_connected;
 
 char *make_telegram_url(void)
 {
@@ -20,7 +20,7 @@ char *make_telegram_url(void)
 
 void send_telegram_message(const char *message) 
 {
-    if(wifi_is_connected)
+    if(getWiFiState())
     {
         const char *telegram_chatid = TELEGRAM_CHAT_ID;
         char url[512] = "";
