@@ -2,8 +2,8 @@
 #include <esp_log.h>
 #include <time.h>
 #include <time_keep.h>
-
 #include <definitions.h>
+#include <display_user.h>
 
 static const char *TAG = "SNTP";
 
@@ -18,21 +18,35 @@ void initializeSNTP(void)
     esp_sntp_init();                                    // Start SNTP
 }
 
-void displayTime(max7219_t *dev)
+void displayTime(max7219_t *dev, bool *display_available, uint8_t *display_user)
 {
-    time_t now;
-    struct tm timeinfo;
-    time(&now);
-    localtime_r(&now, &timeinfo);
-    if(timeinfo.tm_year > (2020 - 1900))
+    if(!(*display_available)) 
     {
-        char t_str[6] = "";
-        sprintf(t_str, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-        max7219_print_static_text(dev, t_str);
+        return;
     }
-    else
+    
+    if(*display_user != DISPLAY_TIME)
     {
-        max7219_print_static_text(dev, "--:--");
+        *display_available = false;
+        time_t now;
+        struct tm timeinfo;
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        if(timeinfo.tm_year > (2020 - 1900))
+        {
+            if(*display_user != DISPLAY_TIME)
+            {
+                char t_str[6] = "";
+                sprintf(t_str, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+                max7219_print_static_text(dev, t_str);
+            }
+        }
+        else
+        {
+            max7219_print_static_text(dev, "--:--");
+        }
+        *display_user = DISPLAY_TIME;
+        *display_available = true;
     }
 }
 

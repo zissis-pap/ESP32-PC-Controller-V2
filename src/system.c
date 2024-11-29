@@ -1,19 +1,19 @@
-#include "main.h"
-#include "definitions.h"
-#include "max7219.h"
-#include "nvs_flash.h"
-#include "system.h"
-#include "wifi.h"
-#include "time_keep.h"
-#include "telegram.h"
+#include <main.h>
+#include <definitions.h>
+#include <max7219.h>
+#include <nvs_flash.h>
+#include <system.h>
+#include <wifi.h>
+#include <time_keep.h>
+#include <telegram.h>
 
 
-void SetupSystem(struct SetupParams* sp)
+void SetupSystem(DisplayParams* dp)
 {
     SetupSPIbus();
     SetupNVS();
-    SetupDotMatrixDisplay(sp->dev);
-    max7219_print_static_text(sp->dev, "Hello!");
+    SetupDotMatrixDisplay(dp->dev);
+    max7219_print_static_text(dp->dev, "Hello!");
     wifi_init();       // Initialize Wi-Fi
     initializeSNTP(); // Initialize SNTP
 }
