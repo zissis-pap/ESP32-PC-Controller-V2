@@ -66,7 +66,7 @@ void receive_news(void)
 {
     if(getWiFiState())
     {
-        const char *news_api = TELEGRAM_CHAT_ID;
+        const char *news_api = NEWS_API_KEY;
         char url[512] = "";
         sprintf(url, "https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=%s", news_api);
 
