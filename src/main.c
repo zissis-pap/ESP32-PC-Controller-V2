@@ -10,6 +10,9 @@
 #include <telegram.h>
 #include <display_user.h>
 
+#include <fetch_news.h>
+
+
 void ScrollText(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
     if(!*(display_available)) return;
@@ -25,7 +28,8 @@ void MasterTask(void *pvParameters)
     DisplayParams *receivedParams = (DisplayParams*) pvParameters;
 	while(1)
     {
-        ScrollText(receivedParams->dev, "Task 1 runs!", &(receivedParams->display_available), &(receivedParams->display_user));
+        // ScrollText(receivedParams->dev, "Task 1 runs!", &(receivedParams->display_available), &(receivedParams->display_user));
+        receive_news();
         vTaskDelay(pdMS_TO_TICKS(10000));
     }
     esp_restart(); // If main task exits, restart the system
@@ -39,6 +43,11 @@ void DotMatrixDisplayTime(void *pvParameters)
         displayTime(receivedParams->dev, &(receivedParams->display_available), &(receivedParams->display_user));
         vTaskDelay(pdMS_TO_TICKS(100));
     }
+}
+
+void DotMatrixDisplayNews(void *pvParameters)
+{
+
 }
 
 void app_main()

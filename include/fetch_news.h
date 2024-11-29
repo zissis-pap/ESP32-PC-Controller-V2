@@ -1,0 +1,1 @@
+void receive_news(void);
