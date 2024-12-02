@@ -79,9 +79,9 @@ char *receive_news(void)
     return NULL;
 }
 
-void ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
+char* ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
-    if(!*(display_available)) return;
+    if(!*(display_available)) return 0;
     *display_available = false;
     *display_user = DISPLAY_NEWS;
     const char delimiter[] = "\n";
@@ -94,6 +94,7 @@ void ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *di
     max7219_scroll_text(dev, token, 100);
     token = strtok(NULL, delimiter);
     *display_available = true;
+    return token;
 }
 
 void parse_news_response(char *response) 

@@ -48,20 +48,22 @@ void DotMatrixDisplayTime(void *pvParameters)
 void DotMatrixDisplayNews(void *pvParameters)
 {
     DisplayParams *receivedParams = (DisplayParams*) pvParameters;
-    uint8_t counter = 0;
     char *data = NULL;
+    char *remaining = NULL;
     while(1)
     {
-        if(counter == 0) 
+        if(remaining == NULL) 
         {
-            if(data != NULL) free(data);
+            if(data != NULL) {
+                free(data);
+            }
             data = receive_news();
-            printf(data);
         }
-        ScrollNews(receivedParams->dev, data, &(receivedParams->display_available), &(receivedParams->display_user));
-        vTaskDelay(pdMS_TO_TICKS(5000));
-        if(counter >= 19) counter = 0;
-        else counter++;
+        if(data != NULL)
+        {
+            remaining = ScrollNews(receivedParams->dev, data, &(receivedParams->display_available), &(receivedParams->display_user));
+        }
+        vTaskDelay(pdMS_TO_TICKS(60000));
     }
 }
 
