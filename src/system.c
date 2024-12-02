@@ -38,7 +38,7 @@ void SetupDotMatrixDisplay(max7219_t *dev)
 
     ESP_ERROR_CHECK(max7219_init_desc(dev, HOST, MAX7219_MAX_CLOCK_SPEED_HZ, CS_PIN));
     ESP_ERROR_CHECK(max7219_init(dev));
-    max7219_set_brightness(dev, 15);
+    max7219_set_brightness(dev, 1);
 }
 
 void SetupSPIbus(void)
@@ -62,7 +62,7 @@ void ErrorHandler(void)
 
 void InitAction(max7219_t *dev)
 {
-    // vTaskDelay(pdMS_TO_TICKS(2000));
+    // vTaskDelay(pdMS_TO_TICKS(4000));
     max7219_scroll_text(dev, "PC Controller V2.0", 100);
     send_telegram_message("MAXIMUS-III+power+restored!");
 }

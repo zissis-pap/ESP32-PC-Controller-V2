@@ -47,7 +47,22 @@ void DotMatrixDisplayTime(void *pvParameters)
 
 void DotMatrixDisplayNews(void *pvParameters)
 {
-
+    DisplayParams *receivedParams = (DisplayParams*) pvParameters;
+    uint8_t counter = 0;
+    char *data = NULL;
+    while(1)
+    {
+        if(counter == 0) 
+        {
+            if(data != NULL) free(data);
+            data = receive_news();
+            printf(data);
+        }
+        ScrollNews(receivedParams->dev, data, &(receivedParams->display_available), &(receivedParams->display_user));
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        if(counter >= 19) counter = 0;
+        else counter++;
+    }
 }
 
 void app_main()
@@ -58,11 +73,11 @@ void app_main()
     SetupSystem(&DisplayConfig);
     InitAction(&dev);
 
-    xTaskCreate(MasterTask, "master_task", 8192, &DisplayConfig, 5, NULL);
-    xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 6, NULL);
+    // xTaskCreate(MasterTask, "master_task", 32768, &DisplayConfig, 5, NULL);
+    xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 7, NULL);
+    xTaskCreate(DotMatrixDisplayNews, "display_news", 32768, &DisplayConfig, 6, NULL);
     while(1)
     {
-        // displayTime(&dev);
         vTaskDelay(pdMS_TO_TICKS(10000));
     }
     esp_restart(); // If main task exits, restart the system

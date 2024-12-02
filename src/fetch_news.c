@@ -5,40 +5,16 @@
 #include <wifi.h>
 #include <cJSON.h>
 #include <keys.h>
+#include <display_user.h>
 
+#define NEWS_ARRAY_SIZE 32768
 static const char* TAG = "NEWS";
 esp_http_client_handle_t client;
 
-void parse_news_response(const char *response) 
-{
-    cJSON *json = cJSON_Parse(response);
-    if (json == NULL) 
-    {
-        ESP_LOGE("JSON", "Failed to parse JSON response");
-        return;
-    }
-
-    cJSON *articles = cJSON_GetObjectItem(json, "articles");
-    cJSON *article = NULL;
-    cJSON_ArrayForEach(article, articles) 
-    {
-        cJSON *title = cJSON_GetObjectItem(article, "title");
-        cJSON *description = cJSON_GetObjectItem(article, "description");
-        if (cJSON_IsString(title) && (title->valuestring != NULL)) 
-        {
-            ESP_LOGI("NEWS", "Title: %s", title->valuestring);
-            if (cJSON_IsString(description) && (description->valuestring != NULL)) 
-            {
-                ESP_LOGI("NEWS", "Description: %s", description->valuestring);
-            }
-        }
-    }
-
-    cJSON_Delete(json);
-}
 
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
 {
+    static int output_len = 0;       // Stores number of bytes read
     switch (evt->event_id) 
     {
         case HTTP_EVENT_ERROR:
@@ -50,11 +26,12 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
         case HTTP_EVENT_ON_DATA:
             if (!esp_http_client_is_chunked_response(client)) 
             {
-                // ESP_LOGI("HTTP_EVENT", "Response Body: %.*s", evt->data_len, (char*)evt->data);
-                // parse_news_response((char*)evt->data);
-                // printf("\n\nDATA LEN: %d\n", evt->data_len);
-                // printf((char*)evt->data);
+                memcpy(evt->user_data + output_len, evt->data, evt->data_len);
+                output_len += evt->data_len;
             }
+            break;
+        case HTTP_EVENT_ON_FINISH:
+             output_len = 0;
             break;
         default:
             break;
@@ -62,18 +39,21 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-void receive_news(void) 
+char *receive_news(void) 
 {
+    char *responseBuffer;
     if(getWiFiState())
     {
         const char *news_api = NEWS_API_KEY;
-        char url[512] = "";
-        sprintf(url, "https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=%s", news_api);
-
+        char url[256] = "";
+        sprintf(url, "https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=%s", news_api);
+        
+        responseBuffer = (char*)malloc(NEWS_ARRAY_SIZE*sizeof(char));
         esp_http_client_config_t config = 
         {
             .url = url,
             .transport_type = HTTP_TRANSPORT_OVER_SSL,
+            .user_data = (char*)responseBuffer,
             .event_handler = _http_event_handler,
         };
 
@@ -85,13 +65,83 @@ void receive_news(void)
         if (err == ESP_OK) 
         {
             ESP_LOGI(TAG, "News received successfully");
+            replace_utf8_apostrophes(responseBuffer);
+            parse_news_response(responseBuffer);
         }
         else
         {
             ESP_LOGE(TAG, "Failed to receive news: %s", esp_err_to_name(err));
         }
         esp_http_client_cleanup(client);
-        return;
+        return responseBuffer;
     }
     ESP_LOGI(TAG, "WiFi is not connected\n");
+    return NULL;
+}
+
+void ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
+{
+    if(!*(display_available)) return;
+    *display_available = false;
+    *display_user = DISPLAY_NEWS;
+    const char delimiter[] = "\n";
+    static char *token;
+    
+    if(token == NULL)
+    {
+        token = strtok(text, delimiter);
+    }
+    max7219_scroll_text(dev, token, 100);
+    token = strtok(NULL, delimiter);
+    *display_available = true;
+}
+
+void parse_news_response(char *response) 
+{
+    cJSON *json = cJSON_Parse(response);
+    if (json == NULL) 
+    {
+        ESP_LOGE("JSON", "Failed to parse JSON response");
+        return;
+    }
+    memset(response, 0, NEWS_ARRAY_SIZE);
+    cJSON *articles = cJSON_GetObjectItem(json, "articles");
+    cJSON *article = NULL;
+    cJSON_ArrayForEach(article, articles) 
+    {
+        cJSON *title = cJSON_GetObjectItem(article, "title");
+        // cJSON *description = cJSON_GetObjectItem(article, "description");
+        if (cJSON_IsString(title) && (title->valuestring != NULL)) 
+        {
+            strcat(response, title->valuestring);
+            strcat(response, "\n");
+
+            // if (cJSON_IsString(description) && (description->valuestring != NULL)) 
+            // {
+            //     ESP_LOGI("NEWS", "Description: %s", description->valuestring);
+            // }
+        }
+    }
+    cJSON_Delete(json);
+}
+
+void replace_utf8_apostrophes(char *text) 
+{
+    char *src = text;
+    char *dest = text;
+
+    while (*src) 
+    {
+        // Check for UTF-8 encoded apostrophe: 0xE2 0x80 0x99
+        if ((unsigned char)src[0] == 0xE2 && (unsigned char)src[1] == 0x80 && (unsigned char)src[2] == 0x99) 
+        {
+            *dest++ = '\'';  // Replace with ASCII apostrophe
+            src += 3;        // Skip the 3-byte UTF-8 sequence
+        } 
+        else 
+        {
+            *dest++ = *src++; // Copy other characters as-is
+        }
+    }
+    *dest = '\0'; // Null-terminate the resulting string
 }
