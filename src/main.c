@@ -67,6 +67,15 @@ void DotMatrixDisplayNews(void *pvParameters)
     }
 }
 
+void TelegramPollUpdates(void *pvParameters)
+{
+    while(1)
+    {
+        get_telegram_updates();
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
 void app_main()
 {
     max7219_t dev;
@@ -78,6 +87,8 @@ void app_main()
     // xTaskCreate(MasterTask, "master_task", 32768, &DisplayConfig, 5, NULL);
     xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 7, NULL);
     xTaskCreate(DotMatrixDisplayNews, "display_news", 32768, &DisplayConfig, 6, NULL);
+    xTaskCreate(TelegramPollUpdates, "poll_updates", 8192, NULL, 5, NULL);
+    
     while(1)
     {
         vTaskDelay(pdMS_TO_TICKS(10000));

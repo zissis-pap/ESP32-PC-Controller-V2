@@ -9,7 +9,7 @@
 
 #define NEWS_ARRAY_SIZE 32768
 static const char* TAG = "NEWS";
-esp_http_client_handle_t client;
+static esp_http_client_handle_t client;
 
 
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
