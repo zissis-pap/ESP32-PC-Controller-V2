@@ -91,7 +91,7 @@ char* ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *d
     {
         token = strtok(text, delimiter);
     }
-    max7219_scroll_text(dev, token, 100);
+    max7219_scroll_text(dev, token, 75);
     token = strtok(NULL, delimiter);
     *display_available = true;
     return token;

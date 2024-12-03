@@ -38,7 +38,7 @@ void SetupDotMatrixDisplay(max7219_t *dev)
 
     ESP_ERROR_CHECK(max7219_init_desc(dev, HOST, MAX7219_MAX_CLOCK_SPEED_HZ, CS_PIN));
     ESP_ERROR_CHECK(max7219_init(dev));
-    max7219_set_brightness(dev, 1);
+    max7219_set_brightness(dev, 15);
 }
 
 void SetupSPIbus(void)

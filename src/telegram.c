@@ -4,6 +4,7 @@
 #include <keys.h>
 #include <wifi.h>
 #include <string.h>
+#include <cJSON.h>
 
 static const char *TAG = "Telegram";
 static esp_http_client_handle_t client;
@@ -27,7 +28,6 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
             }
             break;
         case HTTP_EVENT_ON_FINISH:
-            printf(evt->user_data);
             output_len = 0;
             break;
         default:
@@ -40,19 +40,16 @@ void send_telegram_message(const char *message)
 {
     if(getWiFiState())
     {
-        const char *telegram_chatid = TELEGRAM_CHAT_ID;
-        char url[512] = "";
-        char *basic_url =  make_telegram_url();
-        sprintf(url, "%s/sendMessage?chat_id=%s&text=%s", basic_url, telegram_chatid, message);
-        free(basic_url);
+        char *url = make_telegram_url(message, TELEGRAM_SEND_TEXT);
 
         esp_http_client_config_t config = 
         {
             .url = url,
             .transport_type = HTTP_TRANSPORT_OVER_SSL,
         };
-
+        
         client = esp_http_client_init(&config);
+        free(url);
         esp_err_t err = esp_http_client_perform(client);
 
         if (err == ESP_OK) 
@@ -75,10 +72,7 @@ void get_telegram_updates(void)
     if(getWiFiState())
     {
         responseBuffer = (char*)malloc(4096*sizeof(char));
-        char url[128] = "";
-        char *basic_url =  make_telegram_url();
-        sprintf(url, "%s/getUpdates", basic_url);
-        free(basic_url);
+        char *url = make_telegram_url(NULL, TELEGRAM_GET_UPDATES);
 
         esp_http_client_config_t config = 
         {
@@ -89,11 +83,13 @@ void get_telegram_updates(void)
         };
 
         client = esp_http_client_init(&config);
+        free(url);
         esp_err_t err = esp_http_client_perform(client);
-
+        
         if (err == ESP_OK) 
         {
             ESP_LOGI(TAG, "Request for updates sent successfully");
+            parse_telegram_response(responseBuffer);
         }
         else
         {
@@ -105,13 +101,64 @@ void get_telegram_updates(void)
     }
 }
 
-char *make_telegram_url(void)
+char *make_telegram_url(const char *message, uint8_t select)
 {
+    char *url;
     const char *telegram_url = "https://api.telegram.org/bot";
     const char *telegram_token = TELEGRAM_BOT_TOKEN;
-    char *url;
-    url = (char*)calloc(strlen(telegram_url) + strlen(telegram_token), sizeof(char));
-    strcpy(url, telegram_url);
-    strcat(url, telegram_token);
+    const char *telegram_chatid = TELEGRAM_CHAT_ID;
+    url = (char*)malloc(512*sizeof(char));
+    
+    if(select == TELEGRAM_SEND_TEXT)
+    {
+        sprintf(url, "%s%s/sendMessage?chat_id=%s&text=%s", telegram_url, telegram_token, telegram_chatid, message);
+    }
+    else
+    {
+        sprintf(url, "%s%s/getUpdates", telegram_url, telegram_token);
+    }
     return url;
+}
+
+void parse_telegram_response(char *response) 
+{
+    cJSON *json = cJSON_Parse(response);
+    if (json == NULL) 
+    {
+        ESP_LOGE("JSON", "Failed to parse JSON response");
+        return;
+    }
+    cJSON *result = cJSON_GetObjectItem(json, "result");
+    if (result == NULL) 
+    {
+        printf("\"result\" key not found\n");
+        cJSON_Delete(json);
+        return;
+    }
+    int array_size = cJSON_GetArraySize(result);
+    printf("Extracted data:\n");
+    for (int i = 0; i < array_size; i++) 
+    {
+        cJSON *item = cJSON_GetArrayItem(result, i);
+        if (item == NULL) continue;
+
+        cJSON *update_id = cJSON_GetObjectItem(item, "update_id"); // Get "update_id"
+        if (cJSON_IsNumber(update_id)) 
+        {
+            printf("update_id: %d\n", update_id->valueint);
+        } 
+
+        cJSON *message = cJSON_GetObjectItem(item, "message"); // Get "message" object
+        if (message == NULL) 
+        {
+            continue;
+        }
+
+        cJSON *text = cJSON_GetObjectItem(message, "text"); // Get "text" from "message"
+        if (cJSON_IsString(text)) 
+        {
+            printf("text: %s\n", text->valuestring);
+        } 
+    }
+    cJSON_Delete(json);
 }

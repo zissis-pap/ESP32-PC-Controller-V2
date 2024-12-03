@@ -9,7 +9,6 @@
 #include <time_keep.h>
 #include <telegram.h>
 #include <display_user.h>
-
 #include <fetch_news.h>
 
 
@@ -69,6 +68,8 @@ void DotMatrixDisplayNews(void *pvParameters)
 
 void TelegramPollUpdates(void *pvParameters)
 {
+    // Set update_id as latest update_id+1
+
     while(1)
     {
         get_telegram_updates();
