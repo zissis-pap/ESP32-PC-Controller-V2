@@ -12,26 +12,20 @@
 #include <fetch_news.h>
 
 
-void ScrollText(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
+void ScrollMessage(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
     if(!*(display_available)) return;
 
     *display_available = false;
-    *display_user = MAIN_TASK;
+    *display_user = DISPLAY_MESSAGE;
     max7219_scroll_text(dev, text, 100);
     *display_available = true;
 }
 
-void MasterTask(void *pvParameters)
+void DisplayTask(void *pvParameters)
 {
     DisplayParams *receivedParams = (DisplayParams*) pvParameters;
-	while(1)
-    {
-        // ScrollText(receivedParams->dev, "Task 1 runs!", &(receivedParams->display_available), &(receivedParams->display_user));
-        receive_news();
-        vTaskDelay(pdMS_TO_TICKS(10000));
-    }
-    esp_restart(); // If main task exits, restart the system
+    ScrollMessage(receivedParams->dev, "Hi!", &(receivedParams->display_available), &(receivedParams->display_user));
 }
 
 void DotMatrixDisplayTime(void *pvParameters)
@@ -40,7 +34,7 @@ void DotMatrixDisplayTime(void *pvParameters)
     while(1)
     {
         displayTime(receivedParams->dev, &(receivedParams->display_available), &(receivedParams->display_user));
-        vTaskDelay(pdMS_TO_TICKS(75));
+        vTaskDelay(pdMS_TO_TICKS(250));
     }
 }
 
@@ -86,11 +80,12 @@ void TelegramPollUpdates(void *pvParameters)
 
         for(uint8_t i = 0; i < count; i++)
         {
-            free((data->text[i]));
+            printf(data->text[i]);
+            free(data->text[i]);
         }
         free(data);
         if(count != 0 ) telegram_set_offset(offset);
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -103,8 +98,8 @@ void app_main()
     InitAction(&dev);
 
     // xTaskCreate(MasterTask, "master_task", 32768, &DisplayConfig, 5, NULL);
-    xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 7, NULL);
-    xTaskCreate(DotMatrixDisplayNews, "display_news", 32768, &DisplayConfig, 6, NULL);
+    xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 8, NULL);
+    xTaskCreate(DotMatrixDisplayNews, "display_news", 32768, &DisplayConfig, 10, NULL);
     xTaskCreate(TelegramPollUpdates, "poll_updates", 16384, NULL, 5, NULL);
     
     while(1)

@@ -20,21 +20,20 @@ void initializeSNTP(void)
 
 void displayTime(max7219_t *dev, bool *display_available, uint8_t *display_user)
 {
+    static int last_minute = 0;
     if(!(*display_available)) 
     {
         return;
     }
-    
-    if(*display_user != DISPLAY_TIME)
+    *display_available = false;
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    if(*display_user != DISPLAY_TIME || last_minute != timeinfo.tm_min)
     {
-        *display_available = false;
-        time_t now;
-        struct tm timeinfo;
-        time(&now);
-        localtime_r(&now, &timeinfo);
         if(timeinfo.tm_year > (2020 - 1900))
         {
-            if(*display_user != DISPLAY_TIME)
             {
                 char t_str[6] = "";
                 sprintf(t_str, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
@@ -45,8 +44,9 @@ void displayTime(max7219_t *dev, bool *display_available, uint8_t *display_user)
         {
             max7219_print_static_text(dev, "--:--");
         }
-        *display_user = DISPLAY_TIME;
-        *display_available = true;
+        last_minute = timeinfo.tm_min;
     }
+    *display_user = DISPLAY_TIME;
+    *display_available = true;
 }
 
