@@ -5,6 +5,7 @@
 #include <wifi.h>
 #include <string.h>
 #include <cJSON.h>
+#include <math.h>
 
 static const char *TAG = "Telegram";
 static esp_http_client_handle_t client;
@@ -40,7 +41,7 @@ void send_telegram_message(const char *message)
 {
     if(getWiFiState())
     {
-        char *url = make_telegram_url(message, TELEGRAM_SEND_TEXT);
+        char *url = make_telegram_url(message, TELEGRAM_SEND_TEXT, 0);
 
         esp_http_client_config_t config = 
         {
@@ -66,14 +67,17 @@ void send_telegram_message(const char *message)
     ESP_LOGI(TAG, "WiFi is not connected\n");
 }
 
-void get_telegram_updates(void)
+TelegramResponse *get_telegram_updates(uint8_t count)
 {
     char *responseBuffer;
+    // TelegramResponse resp_storage = {.count = 0, .request_id = {0}, };
+    TelegramResponse *resp_storage = malloc(sizeof(TelegramResponse));
+    memset(resp_storage, 0, sizeof(TelegramResponse)); // Initialize memory
     if(getWiFiState())
     {
         responseBuffer = (char*)malloc(4096*sizeof(char));
-        char *url = make_telegram_url(NULL, TELEGRAM_GET_UPDATES);
-
+        char *url = make_telegram_url(NULL, TELEGRAM_GET_UPDATES, 0);
+        
         esp_http_client_config_t config = 
         {
             .url = url,
@@ -89,7 +93,8 @@ void get_telegram_updates(void)
         if (err == ESP_OK) 
         {
             ESP_LOGI(TAG, "Request for updates sent successfully");
-            parse_telegram_response(responseBuffer);
+            // printf(responseBuffer);
+            parse_telegram_response(resp_storage, responseBuffer, count);
         }
         else
         {
@@ -97,11 +102,41 @@ void get_telegram_updates(void)
         }
         esp_http_client_cleanup(client);
         free(responseBuffer);
-        return;
     }
+    return resp_storage;
 }
 
-char *make_telegram_url(const char *message, uint8_t select)
+void telegram_set_offset(int offset) 
+{
+    if(getWiFiState())
+    {
+        char *url = make_telegram_url(NULL, TELEGRAM_GET_UPDATES, offset);
+
+        esp_http_client_config_t config = 
+        {
+            .url = url,
+            .transport_type = HTTP_TRANSPORT_OVER_SSL,
+        };
+        
+        client = esp_http_client_init(&config);
+        free(url);
+        esp_err_t err = esp_http_client_perform(client);
+
+        if (err == ESP_OK) 
+        {
+            ESP_LOGI(TAG, "Message sent successfully");
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to send message: %s", esp_err_to_name(err));
+        }
+        esp_http_client_cleanup(client);
+        return;
+    }
+    ESP_LOGI(TAG, "WiFi is not connected\n");
+}
+
+char *make_telegram_url(const char *message, uint8_t select, int offset)
 {
     char *url;
     const char *telegram_url = "https://api.telegram.org/bot";
@@ -115,12 +150,13 @@ char *make_telegram_url(const char *message, uint8_t select)
     }
     else
     {
-        sprintf(url, "%s%s/getUpdates", telegram_url, telegram_token);
+        if(offset) sprintf(url, "%s%s/getUpdates?offset=%d", telegram_url, telegram_token, offset);
+        else sprintf(url, "%s%s/getUpdates?limit=%d", telegram_url, telegram_token, MAX_TELEGRAM_REQUESTS);
     }
     return url;
 }
 
-void parse_telegram_response(char *response) 
+void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8_t count) 
 {
     cJSON *json = cJSON_Parse(response);
     if (json == NULL) 
@@ -135,9 +171,10 @@ void parse_telegram_response(char *response)
         cJSON_Delete(json);
         return;
     }
-    int array_size = cJSON_GetArraySize(result);
-    printf("Extracted data:\n");
-    for (int i = 0; i < array_size; i++) 
+    saved_data->count = cJSON_GetArraySize(result);
+    int offset = saved_data->count - count;
+    offset = fmax(offset, 0);
+    for (int i = 0; i < saved_data->count; i++) 
     {
         cJSON *item = cJSON_GetArrayItem(result, i);
         if (item == NULL) continue;
@@ -145,7 +182,7 @@ void parse_telegram_response(char *response)
         cJSON *update_id = cJSON_GetObjectItem(item, "update_id"); // Get "update_id"
         if (cJSON_IsNumber(update_id)) 
         {
-            printf("update_id: %d\n", update_id->valueint);
+            if (i >= offset) saved_data->request_id[i-offset] = update_id->valueint;
         } 
 
         cJSON *message = cJSON_GetObjectItem(item, "message"); // Get "message" object
@@ -157,7 +194,12 @@ void parse_telegram_response(char *response)
         cJSON *text = cJSON_GetObjectItem(message, "text"); // Get "text" from "message"
         if (cJSON_IsString(text)) 
         {
-            printf("text: %s\n", text->valuestring);
+            if (i >= offset)
+            {
+                uint16_t text_len = strlen(text->valuestring);
+                saved_data->text[i-offset] = (char*)calloc((text_len + 1), sizeof(char));
+                memcpy(saved_data->text[i-offset], text->valuestring, text_len);
+            }
         } 
     }
     cJSON_Delete(json);

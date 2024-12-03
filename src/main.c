@@ -40,7 +40,7 @@ void DotMatrixDisplayTime(void *pvParameters)
     while(1)
     {
         displayTime(receivedParams->dev, &(receivedParams->display_available), &(receivedParams->display_user));
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(75));
     }
 }
 
@@ -53,7 +53,8 @@ void DotMatrixDisplayNews(void *pvParameters)
     {
         if(remaining == NULL) 
         {
-            if(data != NULL) {
+            if(data != NULL) 
+            {
                 free(data);
             }
             data = receive_news();
@@ -68,11 +69,27 @@ void DotMatrixDisplayNews(void *pvParameters)
 
 void TelegramPollUpdates(void *pvParameters)
 {
-    // Set update_id as latest update_id+1
+    telegram_set_offset(-1); // Acknowledge all messages when rebooting
 
     while(1)
     {
-        get_telegram_updates();
+        TelegramResponse *data = get_telegram_updates(MAX_TELEGRAM_REQUESTS);
+        uint8_t count = data->count;
+        int offset = data->request_id[count-1] + 1;
+        // printf("Count: %d\nOffset: %d\nID1: %d\nID2: %d\nID3: %d\n", count, offset, data->request_id[0], data->request_id[1], data->request_id[2]);
+        
+        // for(uint8_t i = 0; i < count; i++)
+        // {
+        //     printf(data->text[i]);
+        //     printf("\n");
+        // }
+
+        for(uint8_t i = 0; i < count; i++)
+        {
+            free((data->text[i]));
+        }
+        free(data);
+        if(count != 0 ) telegram_set_offset(offset);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
@@ -88,7 +105,7 @@ void app_main()
     // xTaskCreate(MasterTask, "master_task", 32768, &DisplayConfig, 5, NULL);
     xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 7, NULL);
     xTaskCreate(DotMatrixDisplayNews, "display_news", 32768, &DisplayConfig, 6, NULL);
-    xTaskCreate(TelegramPollUpdates, "poll_updates", 8192, NULL, 5, NULL);
+    xTaskCreate(TelegramPollUpdates, "poll_updates", 16384, NULL, 5, NULL);
     
     while(1)
     {

@@ -48,7 +48,7 @@ char *receive_news(void)
         char url[256] = "";
         sprintf(url, "https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=%s", news_api);
         
-        responseBuffer = (char*)malloc(NEWS_ARRAY_SIZE*sizeof(char));
+        responseBuffer = (char*)calloc(NEWS_ARRAY_SIZE, sizeof(char));
         esp_http_client_config_t config = 
         {
             .url = url,

@@ -62,7 +62,7 @@ void ErrorHandler(void)
 
 void InitAction(max7219_t *dev)
 {
-    // vTaskDelay(pdMS_TO_TICKS(4000));
+    vTaskDelay(pdMS_TO_TICKS(4000));
     max7219_scroll_text(dev, "PC Controller V2.0", 100);
     send_telegram_message("MAXIMUS-III+power+restored!");
 }
