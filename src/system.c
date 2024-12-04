@@ -1,4 +1,3 @@
-#include <main.h>
 #include <definitions.h>
 #include <max7219.h>
 #include <nvs_flash.h>
@@ -6,7 +5,6 @@
 #include <wifi.h>
 #include <time_keep.h>
 #include <telegram.h>
-
 
 void SetupSystem(DisplayParams* dp)
 {

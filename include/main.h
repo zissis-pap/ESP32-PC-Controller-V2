@@ -1,15 +1,14 @@
 #ifndef MAIN_H
 #define MAIN_H
-#include <max7219.h>
 
-typedef struct 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <system.h>
+
+typedef struct
 {
-    max7219_t *dev;
-    bool display_available;
-    uint8_t display_user;
-} DisplayParams;
-
-void SetupSPIbus(void);
-void SetupDotMatrixDisplay(max7219_t *dev);
+    QueueHandle_t xQueue;
+    DisplayParams *displayParams;
+} TaskParameters_c;
 
 #endif
