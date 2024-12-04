@@ -59,12 +59,13 @@ void DotMatrixDisplayNews(void *pvParameters)
                 free(data);
             }
             data = receive_news();
+            vTaskDelay(pdMS_TO_TICKS(1000));
         }
         if(data != NULL)
         {
             remaining = ScrollNews(receivedParams->dev, data, &(receivedParams->display_available), &(receivedParams->display_user));
+            vTaskDelay(pdMS_TO_TICKS(60000));
         }
-        vTaskDelay(pdMS_TO_TICKS(60000));
     }
 }
 

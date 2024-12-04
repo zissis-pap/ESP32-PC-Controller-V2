@@ -82,7 +82,6 @@ void send_telegram_message(const char *message)
 TelegramResponse *get_telegram_updates(uint8_t count)
 {
     char *responseBuffer;
-    // TelegramResponse resp_storage = {.count = 0, .request_id = {0}, };
     TelegramResponse *resp_storage = malloc(sizeof(TelegramResponse));
     memset(resp_storage, 0, sizeof(TelegramResponse)); // Initialize memory
     if(getWiFiState())
@@ -105,7 +104,6 @@ TelegramResponse *get_telegram_updates(uint8_t count)
         if (err == ESP_OK) 
         {
             ESP_LOGI(TAG, "Request for updates sent successfully");
-            // printf(responseBuffer);
             parse_telegram_response(resp_storage, responseBuffer, count);
         }
         else

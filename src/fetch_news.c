@@ -41,42 +41,63 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 
 char *receive_news(void) 
 {
-    char *responseBuffer;
-    if(getWiFiState())
+    if (!getWiFiState()) 
     {
-        const char *news_api = NEWS_API_KEY;
-        char url[256] = "";
-        sprintf(url, "https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=%s", news_api);
-        
-        responseBuffer = (char*)calloc(NEWS_ARRAY_SIZE, sizeof(char));
-        esp_http_client_config_t config = 
-        {
-            .url = url,
-            .transport_type = HTTP_TRANSPORT_OVER_SSL,
-            .user_data = (char*)responseBuffer,
-            .event_handler = _http_event_handler,
-        };
-
-        client = esp_http_client_init(&config);
-        esp_http_client_set_header(client, "Content-Type", "application/json");
-        esp_http_client_set_header(client, "Authorization", "Bearer Zissis");
-        esp_err_t err = esp_http_client_perform(client);
-
-        if (err == ESP_OK) 
-        {
-            ESP_LOGI(TAG, "News received successfully");
-            replace_utf8_apostrophes(responseBuffer);
-            parse_news_response(responseBuffer);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to receive news: %s", esp_err_to_name(err));
-        }
-        esp_http_client_cleanup(client);
-        return responseBuffer;
+        ESP_LOGI(TAG, "WiFi is not connected");
+        return NULL;
     }
-    ESP_LOGI(TAG, "WiFi is not connected\n");
-    return NULL;
+
+    const char *news_api = NEWS_API_KEY;
+    char url[256] = "";
+    sprintf(url, "https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=%s", news_api);
+
+    // Allocate memory for the response buffer
+    char *responseBuffer = (char*)calloc(NEWS_ARRAY_SIZE, sizeof(char));
+    if (!responseBuffer)
+    {
+        ESP_LOGE(TAG, "Memory allocation for response buffer failed");
+        return NULL;
+    }
+
+    esp_http_client_config_t config = 
+    {
+        .url = url,
+        .transport_type = HTTP_TRANSPORT_OVER_SSL,
+        .user_data = (char*)responseBuffer,
+        .event_handler = _http_event_handler,
+    };
+
+    client = esp_http_client_init(&config);
+    if (!client)
+    {
+        ESP_LOGE(TAG, "Failed to initialize HTTP client");
+        free(responseBuffer);
+        return NULL;
+    }
+
+    // Set necessary headers
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "Authorization", "Bearer Zissis");
+
+    esp_err_t err = esp_http_client_perform(client);
+    esp_http_client_cleanup(client);            // Clean up and parse the response
+    if (err == ESP_OK) 
+    {
+        ESP_LOGI(TAG, "News received successfully");
+        if (parse_news_response(responseBuffer) == RUN_ERROR) 
+        {
+            free(responseBuffer);
+            return NULL;
+        }
+        replace_utf8_apostrophes(responseBuffer);   // Replace UTF-8 apostrophes if necessary
+        return responseBuffer;
+    } 
+    else 
+    {
+        ESP_LOGE(TAG, "Failed to receive news: %s", esp_err_to_name(err));
+        free(responseBuffer);
+        return NULL;
+    }
 }
 
 char* ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
@@ -97,15 +118,16 @@ char* ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *d
     return token;
 }
 
-void parse_news_response(char *response) 
+uint8_t parse_news_response(char *response) 
 {
     cJSON *json = cJSON_Parse(response);
+    memset(response, 0, NEWS_ARRAY_SIZE);
     if (json == NULL) 
     {
         ESP_LOGE("JSON", "Failed to parse JSON response");
-        return;
+        return RUN_ERROR;
     }
-    memset(response, 0, NEWS_ARRAY_SIZE);
+    
     cJSON *articles = cJSON_GetObjectItem(json, "articles");
     cJSON *article = NULL;
     cJSON_ArrayForEach(article, articles) 
@@ -124,6 +146,7 @@ void parse_news_response(char *response)
         }
     }
     cJSON_Delete(json);
+    return RUN_OK;
 }
 
 void replace_utf8_apostrophes(char *text) 
