@@ -15,7 +15,7 @@ void SetupSystem(DisplayParams* dp)
     SetupDotMatrixDisplay(dp->dev);
     max7219_print_static_text(dp->dev, "Hello!");
     wifi_init();       // Initialize Wi-Fi
-    initializeSNTP(); // Initialize SNTP
+    initializeSNTP();  // Initialize SNTP
 }
 
 void SetupNVS(void)
@@ -62,7 +62,7 @@ void ErrorHandler(void)
 
 void InitAction(max7219_t *dev)
 {
-    vTaskDelay(pdMS_TO_TICKS(4000));
+    // vTaskDelay(pdMS_TO_TICKS(4000));
     max7219_scroll_text(dev, "PC Controller V2.0", 100);
     send_telegram_message("MAXIMUS-III+power+restored!");
 }

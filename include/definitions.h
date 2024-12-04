@@ -12,4 +12,7 @@
 #define CS_PIN 10
 #define CLK_PIN 6
 
+#define QUEUE_ITEM_SIZE 128
+#define QUEUE_LENGTH 5
+
 #endif

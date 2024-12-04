@@ -6,9 +6,21 @@
 #include <string.h>
 #include <cJSON.h>
 #include <math.h>
+#include <display_user.h>
 
 static const char *TAG = "Telegram";
 static esp_http_client_handle_t client;
+
+uint8_t ScrollTelegramMessage(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
+{
+    if(!*(display_available)) return 0;
+
+    *display_available = false;
+    *display_user = DISPLAY_MESSAGE;
+    max7219_scroll_text(dev, text, 100);
+    *display_available = true;
+    return 1;
+}
 
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
 {
