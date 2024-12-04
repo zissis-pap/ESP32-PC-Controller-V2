@@ -49,10 +49,10 @@ void DotMatrixDisplayNews(void *pvParameters)
 {
     DisplayParams *receivedParams = (DisplayParams*) pvParameters;
     char *data = NULL;
-    char *remaining = NULL;
+    int remaining = NO_TITLES_AVAILABLE;
     while(1)
     {
-        if(remaining == NULL) 
+        if(remaining == NO_TITLES_AVAILABLE) 
         {
             if(data != NULL) 
             {
@@ -113,7 +113,7 @@ void app_main(void)
 
     // xTaskCreate(MasterTask, "master_task", 32768, &DisplayConfig, 5, NULL);
     xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 8, NULL);
-    xTaskCreate(DotMatrixDisplayNews, "display_news", 32768, &DisplayConfig, 10, NULL);
+    xTaskCreate(DotMatrixDisplayNews, "display_news", 40960, &DisplayConfig, 10, NULL);
     xTaskCreate(TelegramPollUpdates, "poll_updates", 16384, NULL, 5, NULL);
     xTaskCreate(DotMatrixDisplayTelegramMessages, "display_telegram", 2048, &DisplayConfig, 12, NULL);
     

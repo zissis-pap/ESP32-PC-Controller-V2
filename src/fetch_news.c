@@ -84,12 +84,12 @@ char *receive_news(void)
     if (err == ESP_OK) 
     {
         ESP_LOGI(TAG, "News received successfully");
+        replace_utf8_apostrophes(responseBuffer);   // Replace UTF-8 apostrophes if necessary
         if (parse_news_response(responseBuffer) == RUN_ERROR) 
         {
             free(responseBuffer);
             return NULL;
         }
-        replace_utf8_apostrophes(responseBuffer);   // Replace UTF-8 apostrophes if necessary
         return responseBuffer;
     } 
     else 
@@ -100,22 +100,25 @@ char *receive_news(void)
     }
 }
 
-char* ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
+int ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
-    if(!*(display_available)) return 0;
+    if(!*(display_available)) return DISPLAY_BUSY;
     *display_available = false;
     *display_user = DISPLAY_NEWS;
-    const char delimiter[] = "\n";
-    static char *token;
+
+    static char *token = NULL;
     
     if(token == NULL)
     {
-        token = strtok(text, delimiter);
+        token = strtok(text, "\n");
     }
-    max7219_scroll_text(dev, token, 75);
-    token = strtok(NULL, delimiter);
+    if(token != NULL)
+    {
+        max7219_scroll_text(dev, token, 75);
+        token = strtok(NULL, "\n");
+    }
     *display_available = true;
-    return token;
+    return token != NULL;
 }
 
 uint8_t parse_news_response(char *response) 
