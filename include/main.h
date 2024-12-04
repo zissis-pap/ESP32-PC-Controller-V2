@@ -5,6 +5,10 @@
 #include <freertos/task.h>
 #include <system.h>
 
+/**
+ * @brief 
+ * 
+ */
 typedef struct
 {
     QueueHandle_t xQueue;

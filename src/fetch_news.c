@@ -7,7 +7,6 @@
 #include <keys.h>
 #include <display_user.h>
 
-#define NEWS_ARRAY_SIZE 32768
 static const char* TAG = "NEWS";
 static esp_http_client_handle_t client;
 
