@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "time_keep.h": "c",
+        "freertos.h": "c"
+    }
+}

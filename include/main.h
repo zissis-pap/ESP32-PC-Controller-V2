@@ -4,6 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <system.h>
+#include <max7219.h>
 
 /**
  * @brief 
@@ -12,7 +13,7 @@
 typedef struct
 {
     QueueHandle_t xQueue;
-    DisplayParams *displayParams;
-} TaskParameters_c;
+    display_parameters_c *displayParams;
+} task_parameters_c;
 
 #endif

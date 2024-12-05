@@ -7,9 +7,14 @@
 #include <tasks.h>
 #include <definitions.h>
 
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
 void DotMatrixDisplayTelegramMessages(void *pvParameters)
 {
-    TaskParameters_c *receivedParams = (TaskParameters_c*) pvParameters;
+    task_parameters_c *receivedParams = (task_parameters_c*) pvParameters;
     char receivedMessage[QUEUE_ITEM_SIZE] = "";
     while(1)
     {
@@ -32,9 +37,14 @@ void DotMatrixDisplayTelegramMessages(void *pvParameters)
     }
 }
 
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
 void DotMatrixDisplayTime(void *pvParameters)
 {
-    DisplayParams *receivedParams = (DisplayParams*) pvParameters;
+    display_parameters_c *receivedParams = (display_parameters_c*) pvParameters;
     while(1)
     {
         displayTime(receivedParams->dev, &(receivedParams->display_available), &(receivedParams->display_user));
@@ -42,9 +52,14 @@ void DotMatrixDisplayTime(void *pvParameters)
     }
 }
 
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
 void DotMatrixDisplayNews(void *pvParameters)
 {
-    DisplayParams *receivedParams = (DisplayParams*) pvParameters;
+    display_parameters_c *receivedParams = (display_parameters_c*) pvParameters;
     char *data = NULL;
     int remaining = NO_TITLES_AVAILABLE;
     while(1)
@@ -66,6 +81,11 @@ void DotMatrixDisplayNews(void *pvParameters)
     }
 }
 
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
 void TelegramPollUpdates(void *pvParameters)
 {
     QueueHandle_t xQueue = (QueueHandle_t)pvParameters; // Cast parameter to the correct type
