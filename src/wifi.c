@@ -8,7 +8,14 @@
 static const char *TAG = "WIFI";
 static bool wifi_is_connected = false;
 
-// Event handler for Wi-Fi events
+/**
+ * @brief Event handler for Wi-Fi events
+ * 
+ * @param arg 
+ * @param event_base 
+ * @param event_id 
+ * @param event_data 
+ */
 static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) 
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) 
@@ -30,7 +37,10 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
     }
 }
 
-// Initialize Wi-Fi
+/**
+ * @brief Initialize Wi-Fi
+ * 
+ */
 void wifi_init(void) 
 {
     esp_netif_init();
@@ -71,11 +81,22 @@ void wifi_init(void)
     ESP_LOGI(TAG, "Wi-Fi initialization finished.");
 }
 
+/**
+ * @brief Set the Wi Fi state object
+ * 
+ * @param state 
+ */
 void setWiFiState(bool state)
 {
     wifi_is_connected = state;
 }
 
+/**
+ * @brief Get the Wi Fi State object
+ * 
+ * @return true 
+ * @return false 
+ */
 bool getWiFiState(void)
 {
     return wifi_is_connected;

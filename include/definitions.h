@@ -13,7 +13,7 @@
 #define CLK_PIN                     6
 
 #define MESSAGE_QUEUE_ITEM_SIZE     128
-#define MESSAGE_QUEUE_LENGTH        5
+#define MESSAGE_QUEUE_LENGTH        10
 
 #define COMMAND_QUEUE_ITEM_SIZE     1
 #define COMMAND_QUEUE_LENGTH        10

@@ -7,6 +7,10 @@
 
 static const char *TAG = "SNTP";
 
+/**
+ * @brief 
+ * 
+ */
 void initializeSNTP(void) 
 {
     ESP_LOGI(TAG, "Initializing SNTP");
@@ -18,6 +22,13 @@ void initializeSNTP(void)
     esp_sntp_init();                                    // Start SNTP
 }
 
+/**
+ * @brief 
+ * 
+ * @param dev 
+ * @param display_available 
+ * @param display_user 
+ */
 void displayTime(max7219_t *dev, bool *display_available, uint8_t *display_user)
 {
     static int last_minute = 0;

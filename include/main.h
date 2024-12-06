@@ -12,9 +12,9 @@
  */
 typedef struct
 {
-    QueueHandle_t xQueue;
-    display_parameters_c *displayParams;
-} task_parameters_c;
+    QueueHandle_t       xQueue;
+    sys_disp_params_c   *displayParams;
+} disp_task_params_c;
 
 /**
  * @brief 
@@ -25,5 +25,17 @@ typedef struct
     QueueHandle_t xDataQueue;
     QueueHandle_t xCommandQueue;
 } queue_struct_c;
+
+/**
+ * @brief 
+ * 
+ */
+typedef struct
+{
+    queue_struct_c  *queues;
+    gpio_config_c   *pins;
+    
+} command_handler_params_c;
+
 
 #endif

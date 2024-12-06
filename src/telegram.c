@@ -11,6 +11,15 @@
 static const char *TAG = "Telegram";
 static esp_http_client_handle_t client;
 
+/**
+ * @brief 
+ * 
+ * @param dev 
+ * @param text 
+ * @param display_available 
+ * @param display_user 
+ * @return uint8_t 
+ */
 uint8_t ScrollTelegramMessage(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
     if(!*(display_available)) return 0;
@@ -22,6 +31,12 @@ uint8_t ScrollTelegramMessage(max7219_t *dev, char *text, bool *display_availabl
     return 1;
 }
 
+/**
+ * @brief 
+ * 
+ * @param evt 
+ * @return esp_err_t 
+ */
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
 {
     static int output_len = 0;       // Stores number of bytes read
@@ -49,6 +64,11 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
+/**
+ * @brief 
+ * 
+ * @param message 
+ */
 void send_telegram_message(const char *message) 
 {
     if(getWiFiState())
@@ -79,6 +99,12 @@ void send_telegram_message(const char *message)
     ESP_LOGI(TAG, "WiFi is not connected\n");
 }
 
+/**
+ * @brief Get the telegram updates object
+ * 
+ * @param count 
+ * @return TelegramResponse* 
+ */
 TelegramResponse *get_telegram_updates(uint8_t count)
 {
     char *responseBuffer;
@@ -116,6 +142,11 @@ TelegramResponse *get_telegram_updates(uint8_t count)
     return resp_storage;
 }
 
+/**
+ * @brief 
+ * 
+ * @param offset 
+ */
 void telegram_set_offset(int offset) 
 {
     if(getWiFiState())
@@ -146,6 +177,14 @@ void telegram_set_offset(int offset)
     ESP_LOGI(TAG, "WiFi is not connected\n");
 }
 
+/**
+ * @brief 
+ * 
+ * @param message 
+ * @param select 
+ * @param offset 
+ * @return char* 
+ */
 char *make_telegram_url(const char *message, uint8_t select, int offset)
 {
     char *url;
@@ -166,6 +205,13 @@ char *make_telegram_url(const char *message, uint8_t select, int offset)
     return url;
 }
 
+/**
+ * @brief 
+ * 
+ * @param saved_data 
+ * @param response 
+ * @param count 
+ */
 void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8_t count) 
 {
     cJSON *json = cJSON_Parse(response);

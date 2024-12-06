@@ -11,7 +11,7 @@ typedef struct
     max7219_t *dev;
     bool display_available;
     uint8_t display_user;
-} display_parameters_c;
+} sys_disp_params_c;
 
 /**
  * @brief 
@@ -107,3 +107,31 @@ void InitAction(max7219_t *dev);
  * @return int 
  */
 int ExtractCommand(const char * data);
+
+/**
+ * @brief 
+ * 
+ * @param pins 
+ */
+void PowerON(gpio_config_c *pins);
+
+/**
+ * @brief 
+ * 
+ * @param pins 
+ */
+void PowerOFF(gpio_config_c *pins);
+
+/**
+ * @brief 
+ * 
+ * @param pins
+ */
+void Reset(gpio_config_c *pins);
+
+/**
+ * @brief 
+ * 
+ * @param pins 
+ */
+void ForcePowerOFF(gpio_config_c *pins);

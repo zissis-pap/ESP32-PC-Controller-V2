@@ -17,7 +17,6 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     volatile bool *flag = (volatile bool *)arg;
     *flag = true; // Set the interrupt flag
-
 }
 
 /**
@@ -138,8 +137,8 @@ void SetupGPIOPins(gpio_config_c *gpio_pins)
     };
     gpio_config(&io_conf_output);
 
-    gpio_set_level(gpio_pins->output_1_gpio, 0); // Set initial output level to low
-    gpio_set_level(gpio_pins->output_2_gpio, 0); // Set initial output level to low
+    gpio_set_level(gpio_pins->output_1_gpio, 1); // Set initial output level to high (Active low relay)
+    gpio_set_level(gpio_pins->output_2_gpio, 1); // Set initial output level to high (Active low relay)
 }
 
 /**
@@ -190,4 +189,52 @@ int ExtractCommand(const char * data)
         }
     }
     return 0; // Default case if no command matches
+}
+
+/**
+ * @brief 
+ * 
+ * @param pins
+ */
+void PowerON(gpio_config_c *pins)
+{
+    gpio_set_level(pins->output_1_gpio, 0);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    gpio_set_level(pins->output_1_gpio, 1);
+}
+
+/**
+ * @brief 
+ * 
+ * @param pins
+ */
+void PowerOFF(gpio_config_c *pins)
+{
+    gpio_set_level(pins->output_1_gpio, 0);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    gpio_set_level(pins->output_1_gpio, 1);
+}
+
+/**
+ * @brief 
+ * 
+ * @param pins
+ */
+void Reset(gpio_config_c *pins)
+{
+    gpio_set_level(pins->output_2_gpio, 0);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    gpio_set_level(pins->output_2_gpio, 1);
+}
+
+/**
+ * @brief 
+ * 
+ * @param pins
+ */
+void ForcePowerOFF(gpio_config_c *pins)
+{
+    gpio_set_level(pins->output_1_gpio, 0);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    gpio_set_level(pins->output_1_gpio, 1);
 }

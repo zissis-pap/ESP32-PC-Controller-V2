@@ -10,7 +10,12 @@
 static const char* TAG = "NEWS";
 static esp_http_client_handle_t client;
 
-
+/**
+ * @brief 
+ * 
+ * @param evt 
+ * @return esp_err_t 
+ */
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
 {
     static int output_len = 0;       // Stores number of bytes read
@@ -38,6 +43,11 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
+/**
+ * @brief 
+ * 
+ * @return char* 
+ */
 char *receive_news(void) 
 {
     if (!getWiFiState()) 
@@ -99,6 +109,15 @@ char *receive_news(void)
     }
 }
 
+/**
+ * @brief 
+ * 
+ * @param dev 
+ * @param text 
+ * @param display_available 
+ * @param display_user 
+ * @return int 
+ */
 int ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
     if(!*(display_available)) return DISPLAY_BUSY;
@@ -120,6 +139,12 @@ int ScrollNews(max7219_t *dev, char *text, bool *display_available, uint8_t *dis
     return token != NULL;
 }
 
+/**
+ * @brief 
+ * 
+ * @param response 
+ * @return uint8_t 
+ */
 uint8_t parse_news_response(char *response) 
 {
     cJSON *json = cJSON_Parse(response);
@@ -151,6 +176,11 @@ uint8_t parse_news_response(char *response)
     return RUN_OK;
 }
 
+/**
+ * @brief 
+ * 
+ * @param text 
+ */
 void replace_utf8_apostrophes(char *text) 
 {
     char *src = text;

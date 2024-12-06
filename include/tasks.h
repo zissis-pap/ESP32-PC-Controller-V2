@@ -18,7 +18,7 @@ void CommandHandler(void *pvParameters);
  * 
  * @param pvParameters 
  */
-void DotMatrixDisplayTelegramMessages(void *pvParameters);
+void DotMatrixDisplayMessages(void *pvParameters);
 
 /**
  * @brief 

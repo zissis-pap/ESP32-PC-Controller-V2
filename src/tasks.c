@@ -14,25 +14,30 @@
  */
 void PowerController(void *pvParameters)
 {
-    gpio_config_c *pins = (gpio_config_c*) pvParameters;
+    command_handler_params_c *params = (command_handler_params_c*) pvParameters;
     while(1)
     {
-        if(pins->interrupt_gpio_1)
+        if(params->pins->interrupt_gpio_1)
         {
-            pins->interrupt_gpio_1 = false;
+            params->pins->interrupt_gpio_1 = false;
+            gpio_intr_disable(params->pins->input_1_gpio);
+            xQueueSend(params->queues->xDataQueue, "Power switch pressed", pdMS_TO_TICKS(100));
+            PowerON(params->pins);
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            gpio_intr_enable(params->pins->input_1_gpio);
+
         }
-        if(pins->interrupt_gpio_2)
+        if(params->pins->interrupt_gpio_2)
         {
-            pins->interrupt_gpio_2 = false;
+            params->pins->interrupt_gpio_2 = false;
+            gpio_intr_disable(params->pins->input_2_gpio);
+            xQueueSend(params->queues->xDataQueue, "Reset switch pressed", pdMS_TO_TICKS(100));
+            Reset(params->pins);
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            gpio_intr_enable(params->pins->input_2_gpio);
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
-}
-
-void CommandHandler(void *pvParameters)
-{
-    queue_struct_c *queues = (queue_struct_c*)pvParameters; // Cast parameter to the correct type
-
 }
 
 /**
@@ -40,9 +45,48 @@ void CommandHandler(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void DotMatrixDisplayTelegramMessages(void *pvParameters)
+void CommandHandler(void *pvParameters)
 {
-    task_parameters_c *receivedParams = (task_parameters_c*) pvParameters;
+    command_handler_params_c *params = (command_handler_params_c*)pvParameters; // Cast parameter to the correct type
+    int command = 0;
+    while(1)
+    {
+        if (xQueueReceive(params->queues->xCommandQueue, &command, portMAX_DELAY) == pdPASS) 
+        {
+            switch(command)
+            {
+                case POWER_ON_COMMAND:
+                    xQueueSend(params->queues->xDataQueue, "Remote Power ON", pdMS_TO_TICKS(100));
+                    PowerON(params->pins);
+                    break;
+                case POWER_OFF_COMMAND:
+                    xQueueSend(params->queues->xDataQueue, "Remote Power OFF", pdMS_TO_TICKS(100));
+                    PowerOFF(params->pins);
+                    break;
+                case RESET_COMMAND:
+                    xQueueSend(params->queues->xDataQueue, "Remote Reset", pdMS_TO_TICKS(100));
+                    Reset(params->pins);
+                    break;
+                case FORCE_POWER_OFF_COMMAND:
+                    xQueueSend(params->queues->xDataQueue, "Remote Force Power OFF", pdMS_TO_TICKS(100));
+                    ForcePowerOFF(params->pins);
+                    break;
+                default:
+                    break;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
+void DotMatrixDisplayMessages(void *pvParameters)
+{
+    disp_task_params_c *receivedParams = (disp_task_params_c*) pvParameters;
     char receivedMessage[MESSAGE_QUEUE_ITEM_SIZE] = "";
     while(1)
     {
@@ -72,7 +116,7 @@ void DotMatrixDisplayTelegramMessages(void *pvParameters)
  */
 void DotMatrixDisplayTime(void *pvParameters)
 {
-    display_parameters_c *receivedParams = (display_parameters_c*) pvParameters;
+    sys_disp_params_c *receivedParams = (sys_disp_params_c*) pvParameters;
     while(1)
     {
         displayTime(receivedParams->dev, &(receivedParams->display_available), &(receivedParams->display_user));
@@ -87,7 +131,7 @@ void DotMatrixDisplayTime(void *pvParameters)
  */
 void DotMatrixDisplayNews(void *pvParameters)
 {
-    display_parameters_c *receivedParams = (display_parameters_c*) pvParameters;
+    sys_disp_params_c *receivedParams = (sys_disp_params_c*) pvParameters;
     char *data = NULL;
     int remaining = NO_TITLES_AVAILABLE;
     while(1)
@@ -128,12 +172,19 @@ void TelegramPollUpdates(void *pvParameters)
         for(uint8_t i = 0; i < count; i++)
         {
             strcpy(message, data->text[i]);
-            if (xQueueSend(queues->xDataQueue, message, pdMS_TO_TICKS(100)) == pdPASS) 
+            
+            int command = ExtractCommand(message);
+            if(command)
             {
-                
-            } 
-            int command = ExtractCommand(data->text[i]);
-            xQueueSend(queues->xCommandQueue, &command, pdMS_TO_TICKS(100));
+                xQueueSend(queues->xCommandQueue, &command, pdMS_TO_TICKS(100));
+            }
+            else
+            {
+                if (xQueueSend(queues->xDataQueue, message, pdMS_TO_TICKS(100)) == pdPASS) 
+                {
+                    
+                } 
+            }
             free(data->text[i]);
         }
         free(data);
