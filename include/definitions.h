@@ -7,6 +7,9 @@
 
 #define HOST SPI2_HOST
 
+#define POWER_OFF_STATUS            0
+#define POWER_ON_STATUS             1
+
 #define CASCADE_SIZE                4
 #define MOSI_PIN                    7
 #define CS_PIN                      10

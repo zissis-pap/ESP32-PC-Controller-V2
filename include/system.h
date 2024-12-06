@@ -21,10 +21,12 @@ typedef struct
 {
     gpio_num_t input_1_gpio;        // GPIO pin for input
     gpio_num_t input_2_gpio;        // GPIO pin for input
+    gpio_num_t input_3_gpio;        // GPIO pin for input
     gpio_num_t output_1_gpio;       // GPIO pin for output
     gpio_num_t output_2_gpio;       // GPIO pin for output
     volatile bool interrupt_gpio_1;
-    volatile bool interrupt_gpio_2; 
+    volatile bool interrupt_gpio_2;
+    volatile bool interrupt_gpio_3;
 } gpio_config_c;
 
 /**
@@ -103,6 +105,15 @@ void InitAction(max7219_t *dev);
 /**
  * @brief 
  * 
+ * @param pins 
+ * @return true 
+ * @return false 
+ */
+bool MonitorSystemPower(gpio_config_c *pins);
+
+/**
+ * @brief 
+ * 
  * @param data 
  * @return int 
  */
@@ -112,26 +123,22 @@ int ExtractCommand(const char * data);
  * @brief 
  * 
  * @param pins 
+ * @param system_status 
  */
-void PowerON(gpio_config_c *pins);
+void PowerON_OFF(gpio_config_c *pins, int system_status);
 
 /**
  * @brief 
  * 
  * @param pins 
+ * @param system_status 
  */
-void PowerOFF(gpio_config_c *pins);
-
-/**
- * @brief 
- * 
- * @param pins
- */
-void Reset(gpio_config_c *pins);
+void Reset(gpio_config_c *pins, int system_status);
 
 /**
  * @brief 
  * 
  * @param pins 
+ * @param system_status 
  */
-void ForcePowerOFF(gpio_config_c *pins);
+void ForcePowerOFF(gpio_config_c *pins, int system_status);

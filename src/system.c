@@ -105,19 +105,23 @@ void SetupGPIOPins(gpio_config_c *gpio_pins)
 {
     gpio_pins->input_1_gpio = GPIO_NUM_0;   // Set input 1 GPIO pin
     gpio_pins->input_2_gpio = GPIO_NUM_1;   // Set input 2 GPIO pin
+    gpio_pins->input_3_gpio = GPIO_NUM_4;   // Set input 3 GPIO pin
     gpio_pins->output_1_gpio = GPIO_NUM_2;  // Set output 1 GPIO pin
     gpio_pins->output_2_gpio = GPIO_NUM_3;  // Set output 2 GPIO pin
     gpio_pins->interrupt_gpio_1 = false;    // Initialize the interrupt flags
     gpio_pins->interrupt_gpio_2 = false;
+    gpio_pins->interrupt_gpio_3 = false;
 
     // Configure input GPIOs
     gpio_config_t io_conf_input = 
     {
-        .pin_bit_mask = (1ULL << gpio_pins->input_1_gpio) | (1ULL << gpio_pins->input_2_gpio),
+        .pin_bit_mask = (1ULL << gpio_pins->input_1_gpio) |\
+                        (1ULL << gpio_pins->input_2_gpio) |\
+                        (1ULL << gpio_pins->input_3_gpio),
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_POSEDGE
+        .intr_type = GPIO_INTR_ANYEDGE,
     };
     gpio_config(&io_conf_input);
 
@@ -125,7 +129,7 @@ void SetupGPIOPins(gpio_config_c *gpio_pins)
     // Attach interrupt handler
     gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_1);
     gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_2);
-
+    gpio_isr_handler_add(GPIO_NUM_4, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_3);
     // Configure output GPIOs
     gpio_config_t io_conf_output = 
     {
@@ -169,6 +173,18 @@ void InitAction(max7219_t *dev)
 /**
  * @brief 
  * 
+ * @param pins 
+ * @return true 
+ * @return false 
+ */
+bool MonitorSystemPower(gpio_config_c *pins)
+{
+    return gpio_get_level(pins->input_3_gpio) == 1;
+}
+
+/**
+ * @brief 
+ * 
  * @param data 
  * @return int 
  */
@@ -194,9 +210,10 @@ int ExtractCommand(const char * data)
 /**
  * @brief 
  * 
- * @param pins
+ * @param pins 
+ * @param system_status 
  */
-void PowerON(gpio_config_c *pins)
+void PowerON_OFF(gpio_config_c *pins, int system_status)
 {
     gpio_set_level(pins->output_1_gpio, 0);
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -206,35 +223,39 @@ void PowerON(gpio_config_c *pins)
 /**
  * @brief 
  * 
- * @param pins
+ * @param pins 
+ * @param system_status 
  */
-void PowerOFF(gpio_config_c *pins)
+void Reset(gpio_config_c *pins, int system_status)
 {
-    gpio_set_level(pins->output_1_gpio, 0);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    gpio_set_level(pins->output_1_gpio, 1);
+    if(system_status)
+    {
+        gpio_set_level(pins->output_2_gpio, 0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        gpio_set_level(pins->output_2_gpio, 1);
+    }
+    else
+    {
+
+    }
 }
 
 /**
  * @brief 
  * 
- * @param pins
+ * @param pins 
+ * @param system_status 
  */
-void Reset(gpio_config_c *pins)
+void ForcePowerOFF(gpio_config_c *pins, int system_status)
 {
-    gpio_set_level(pins->output_2_gpio, 0);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    gpio_set_level(pins->output_2_gpio, 1);
-}
+    if(system_status)
+    {
+        gpio_set_level(pins->output_1_gpio, 0);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        gpio_set_level(pins->output_1_gpio, 1);
+    }
+    else
+    {
 
-/**
- * @brief 
- * 
- * @param pins
- */
-void ForcePowerOFF(gpio_config_c *pins)
-{
-    gpio_set_level(pins->output_1_gpio, 0);
-    vTaskDelay(pdMS_TO_TICKS(5000));
-    gpio_set_level(pins->output_1_gpio, 1);
+    }
 }

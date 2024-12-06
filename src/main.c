@@ -19,11 +19,11 @@ void app_main(void)
     InitAction(&dev);
 
     xTaskCreate(PowerController, "power_controller", 2048, &commandParams, 15, NULL);
-    xTaskCreate(CommandHandler, "command_handler", 2048, &commandParams, 14, NULL);
+    xTaskCreate(CommandHandler, "command_handler", 2048, &commandParams, 12, NULL);
     xTaskCreate(DotMatrixDisplayTime, "display_time", 2048, &DisplayConfig, 8, NULL);
     xTaskCreate(DotMatrixDisplayNews, "display_news", 40960, &DisplayConfig, 10, NULL);
     xTaskCreate(TelegramPollUpdates, "poll_updates", 16384, &queues, 5, NULL);
-    xTaskCreate(DotMatrixDisplayMessages, "display_telegram", 2048, &taskParams, 12, NULL);
+    xTaskCreate(DotMatrixDisplayMessages, "display_telegram", 2048, &taskParams, 14, NULL);
     
     while(1)
     {   

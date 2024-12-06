@@ -15,26 +15,40 @@
 void PowerController(void *pvParameters)
 {
     command_handler_params_c *params = (command_handler_params_c*) pvParameters;
+    int system_status = 0;
     while(1)
     {
         if(params->pins->interrupt_gpio_1)
         {
+            system_status = gpio_get_level(params->pins->input_3_gpio);
             params->pins->interrupt_gpio_1 = false;
             gpio_intr_disable(params->pins->input_1_gpio);
             xQueueSend(params->queues->xDataQueue, "Power switch pressed", pdMS_TO_TICKS(100));
-            PowerON(params->pins);
+            PowerON_OFF(params->pins, system_status);
             vTaskDelay(pdMS_TO_TICKS(1000));
             gpio_intr_enable(params->pins->input_1_gpio);
-
         }
         if(params->pins->interrupt_gpio_2)
         {
+            system_status = gpio_get_level(params->pins->input_3_gpio);
             params->pins->interrupt_gpio_2 = false;
             gpio_intr_disable(params->pins->input_2_gpio);
             xQueueSend(params->queues->xDataQueue, "Reset switch pressed", pdMS_TO_TICKS(100));
-            Reset(params->pins);
+            Reset(params->pins, system_status);
             vTaskDelay(pdMS_TO_TICKS(1000));
             gpio_intr_enable(params->pins->input_2_gpio);
+        }
+        if(params->pins->interrupt_gpio_3)
+        {
+            params->pins->interrupt_gpio_3 = false;
+            if(MonitorSystemPower(params->pins))
+            {
+                xQueueSend(params->queues->xDataQueue, "PC is ON", pdMS_TO_TICKS(100));
+            }
+            else
+            {
+                xQueueSend(params->queues->xDataQueue, "PC is OFF", pdMS_TO_TICKS(100));
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -46,30 +60,31 @@ void PowerController(void *pvParameters)
  * @param pvParameters 
  */
 void CommandHandler(void *pvParameters)
-{
-    command_handler_params_c *params = (command_handler_params_c*)pvParameters; // Cast parameter to the correct type
+{   // Cast parameter to the correct type
+    command_handler_params_c *params = (command_handler_params_c*)pvParameters; 
     int command = 0;
     while(1)
     {
         if (xQueueReceive(params->queues->xCommandQueue, &command, portMAX_DELAY) == pdPASS) 
-        {
+        {   // Get system status to know if command is to be executed
+            int system_status = gpio_get_level(params->pins->input_3_gpio); 
             switch(command)
             {
                 case POWER_ON_COMMAND:
                     xQueueSend(params->queues->xDataQueue, "Remote Power ON", pdMS_TO_TICKS(100));
-                    PowerON(params->pins);
+                    PowerON_OFF(params->pins, system_status);
                     break;
                 case POWER_OFF_COMMAND:
                     xQueueSend(params->queues->xDataQueue, "Remote Power OFF", pdMS_TO_TICKS(100));
-                    PowerOFF(params->pins);
+                    PowerON_OFF(params->pins, system_status);
                     break;
                 case RESET_COMMAND:
                     xQueueSend(params->queues->xDataQueue, "Remote Reset", pdMS_TO_TICKS(100));
-                    Reset(params->pins);
+                    Reset(params->pins, system_status);
                     break;
                 case FORCE_POWER_OFF_COMMAND:
                     xQueueSend(params->queues->xDataQueue, "Remote Force Power OFF", pdMS_TO_TICKS(100));
-                    ForcePowerOFF(params->pins);
+                    ForcePowerOFF(params->pins, system_status);
                     break;
                 default:
                     break;
@@ -180,10 +195,7 @@ void TelegramPollUpdates(void *pvParameters)
             }
             else
             {
-                if (xQueueSend(queues->xDataQueue, message, pdMS_TO_TICKS(100)) == pdPASS) 
-                {
-                    
-                } 
+                xQueueSend(queues->xDataQueue, message, pdMS_TO_TICKS(100));
             }
             free(data->text[i]);
         }
