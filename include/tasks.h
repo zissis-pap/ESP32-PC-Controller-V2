@@ -4,6 +4,20 @@
  * 
  * @param pvParameters 
  */
+void PowerController(void *pvParameters);
+
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
+void CommandHandler(void *pvParameters);
+
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
 void DotMatrixDisplayTelegramMessages(void *pvParameters);
 
 /**

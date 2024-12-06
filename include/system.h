@@ -19,10 +19,12 @@ typedef struct
  */
 typedef struct
 {
-    gpio_num_t input_1_gpio;    // GPIO pin for input
-    gpio_num_t input_2_gpio;    // GPIO pin for input
-    gpio_num_t output_1_gpio;   // GPIO pin for output
-    gpio_num_t output_2_gpio;   // GPIO pin for output
+    gpio_num_t input_1_gpio;        // GPIO pin for input
+    gpio_num_t input_2_gpio;        // GPIO pin for input
+    gpio_num_t output_1_gpio;       // GPIO pin for output
+    gpio_num_t output_2_gpio;       // GPIO pin for output
+    volatile bool interrupt_gpio_1;
+    volatile bool interrupt_gpio_2; 
 } gpio_config_c;
 
 /**
@@ -35,6 +37,16 @@ typedef struct
     gpio_config_c *gpios;
    
 } setup_parameters_c;
+
+/**
+ * @brief 
+ * 
+ */
+typedef struct 
+{
+    const char *command;
+    int value;
+} CommandMapping;
 
 /**
  * @brief 
@@ -87,3 +99,11 @@ void SetupGPIOPins(gpio_config_c *gpio_pins);
  * @param dev 
  */
 void InitAction(max7219_t *dev);
+
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @return int 
+ */
+int ExtractCommand(const char * data);

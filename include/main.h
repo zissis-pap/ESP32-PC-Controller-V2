@@ -16,4 +16,14 @@ typedef struct
     display_parameters_c *displayParams;
 } task_parameters_c;
 
+/**
+ * @brief 
+ * 
+ */
+typedef struct
+{
+    QueueHandle_t xDataQueue;
+    QueueHandle_t xCommandQueue;
+} queue_struct_c;
+
 #endif

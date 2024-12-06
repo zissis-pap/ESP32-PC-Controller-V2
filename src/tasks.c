@@ -12,10 +12,38 @@
  * 
  * @param pvParameters 
  */
+void PowerController(void *pvParameters)
+{
+    gpio_config_c *pins = (gpio_config_c*) pvParameters;
+    while(1)
+    {
+        if(pins->interrupt_gpio_1)
+        {
+            pins->interrupt_gpio_1 = false;
+        }
+        if(pins->interrupt_gpio_2)
+        {
+            pins->interrupt_gpio_2 = false;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+void CommandHandler(void *pvParameters)
+{
+    queue_struct_c *queues = (queue_struct_c*)pvParameters; // Cast parameter to the correct type
+
+}
+
+/**
+ * @brief 
+ * 
+ * @param pvParameters 
+ */
 void DotMatrixDisplayTelegramMessages(void *pvParameters)
 {
     task_parameters_c *receivedParams = (task_parameters_c*) pvParameters;
-    char receivedMessage[QUEUE_ITEM_SIZE] = "";
+    char receivedMessage[MESSAGE_QUEUE_ITEM_SIZE] = "";
     while(1)
     {
         if (xQueueReceive(receivedParams->xQueue, receivedMessage, portMAX_DELAY) == pdPASS) 
@@ -88,31 +116,24 @@ void DotMatrixDisplayNews(void *pvParameters)
  */
 void TelegramPollUpdates(void *pvParameters)
 {
-    QueueHandle_t xQueue = (QueueHandle_t)pvParameters; // Cast parameter to the correct type
+    queue_struct_c *queues = (queue_struct_c*)pvParameters; // Cast parameter to the correct type
     telegram_set_offset(-1); // Acknowledge all messages when rebooting
-    char message[QUEUE_ITEM_SIZE] = "";
+    char message[MESSAGE_QUEUE_ITEM_SIZE] = "";
     while(1)
     {
         TelegramResponse *data = get_telegram_updates(MAX_TELEGRAM_REQUESTS);
         uint8_t count = data->count;
         int offset = data->request_id[count-1] + 1;
-        // printf("Count: %d\nOffset: %d\nID1: %d\nID2: %d\nID3: %d\n", count, offset, data->request_id[0], data->request_id[1], data->request_id[2]);
-        // for(uint8_t i = 0; i < count; i++)
-        // {
-        //     printf(data->text[i]);
-        //     printf("\n");
-        // }
+
         for(uint8_t i = 0; i < count; i++)
         {
             strcpy(message, data->text[i]);
-            if (xQueueSend(xQueue, message, pdMS_TO_TICKS(100)) == pdPASS) 
+            if (xQueueSend(queues->xDataQueue, message, pdMS_TO_TICKS(100)) == pdPASS) 
             {
-                printf("Message added to Queue: %s\n", message);
+                
             } 
-            else 
-            {
-                printf("Failed to add message to Queue: %s\n", message);
-            }
+            int command = ExtractCommand(data->text[i]);
+            xQueueSend(queues->xCommandQueue, &command, pdMS_TO_TICKS(100));
             free(data->text[i]);
         }
         free(data);

@@ -15,7 +15,8 @@
  */
 static void IRAM_ATTR gpio_isr_handler(void *arg) 
 {
-    int pin = (int)arg;
+    volatile bool *flag = (volatile bool *)arg;
+    *flag = true; // Set the interrupt flag
 
 }
 
@@ -74,7 +75,7 @@ void SetupDotMatrixDisplay(max7219_t *dev)
 
     ESP_ERROR_CHECK(max7219_init_desc(dev, HOST, MAX7219_MAX_CLOCK_SPEED_HZ, CS_PIN));
     ESP_ERROR_CHECK(max7219_init(dev));
-    max7219_set_brightness(dev, 15);
+    max7219_set_brightness(dev, 0);
 }
 
 /**
@@ -107,6 +108,8 @@ void SetupGPIOPins(gpio_config_c *gpio_pins)
     gpio_pins->input_2_gpio = GPIO_NUM_1;   // Set input 2 GPIO pin
     gpio_pins->output_1_gpio = GPIO_NUM_2;  // Set output 1 GPIO pin
     gpio_pins->output_2_gpio = GPIO_NUM_3;  // Set output 2 GPIO pin
+    gpio_pins->interrupt_gpio_1 = false;    // Initialize the interrupt flags
+    gpio_pins->interrupt_gpio_2 = false;
 
     // Configure input GPIOs
     gpio_config_t io_conf_input = 
@@ -121,8 +124,8 @@ void SetupGPIOPins(gpio_config_c *gpio_pins)
 
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
     // Attach interrupt handler
-    gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void *) GPIO_NUM_0);
-    gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler, (void *) GPIO_NUM_1);
+    gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_1);
+    gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_2);
 
     // Configure output GPIOs
     gpio_config_t io_conf_output = 
@@ -162,4 +165,29 @@ void InitAction(max7219_t *dev)
         strcpy(data, "MAXIMUS-III+power+restored!%%0AWiFi+Connection+Failure");
     }
     send_telegram_message(data);
+}
+
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @return int 
+ */
+int ExtractCommand(const char * data)
+{
+    const CommandMapping commands[] = 
+    {
+        {"/power_on",           POWER_ON_COMMAND},
+        {"/power_off",          POWER_OFF_COMMAND},
+        {"/reset",              RESET_COMMAND},
+        {"/force_power_off",    FORCE_POWER_OFF_COMMAND},
+    };
+    for (int i = 0; i < 4; ++i) 
+    {
+        if (strstr(data, commands[i].command) != NULL) 
+        {
+            return commands[i].value;
+        }
+    }
+    return 0; // Default case if no command matches
 }
