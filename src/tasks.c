@@ -41,6 +41,7 @@ void PowerController(void *pvParameters)
         if(params->pins->interrupt_gpio_3)
         {
             params->pins->interrupt_gpio_3 = false;
+            gpio_intr_disable(params->pins->input_3_gpio);
             if(MonitorSystemPower(params->pins))
             {
                 xQueueSend(params->queues->xDataQueue, "PC is ON", pdMS_TO_TICKS(100));
@@ -49,6 +50,8 @@ void PowerController(void *pvParameters)
             {
                 xQueueSend(params->queues->xDataQueue, "PC is OFF", pdMS_TO_TICKS(100));
             }
+            vTaskDelay(pdMS_TO_TICKS(2000)); // Debounce: ignore noise on power status line
+            gpio_intr_enable(params->pins->input_3_gpio);
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -71,12 +74,18 @@ void CommandHandler(void *pvParameters)
             switch(command)
             {
                 case POWER_ON_COMMAND:
-                    xQueueSend(params->queues->xDataQueue, "Remote Power ON", pdMS_TO_TICKS(100));
-                    PowerON_OFF(params->pins, system_status);
+                    if(!system_status)
+                    {
+                        xQueueSend(params->queues->xDataQueue, "Remote Power ON", pdMS_TO_TICKS(100));
+                        PowerON_OFF(params->pins, system_status);
+                    }
                     break;
                 case POWER_OFF_COMMAND:
-                    xQueueSend(params->queues->xDataQueue, "Remote Power OFF", pdMS_TO_TICKS(100));
-                    PowerON_OFF(params->pins, system_status);
+                    if(system_status)
+                    {
+                        xQueueSend(params->queues->xDataQueue, "Remote Power OFF", pdMS_TO_TICKS(100));
+                        PowerON_OFF(params->pins, system_status);
+                    }
                     break;
                 case RESET_COMMAND:
                     xQueueSend(params->queues->xDataQueue, "Remote Reset", pdMS_TO_TICKS(100));
@@ -182,12 +191,16 @@ void TelegramPollUpdates(void *pvParameters)
     {
         TelegramResponse *data = get_telegram_updates(MAX_TELEGRAM_REQUESTS);
         uint8_t count = data->count;
-        int offset = data->request_id[count-1] + 1;
 
         for(uint8_t i = 0; i < count; i++)
         {
+            if(data->text[i] == NULL)
+            {
+                free(data->text[i]);
+                continue;
+            }
             strcpy(message, data->text[i]);
-            
+
             int command = ExtractCommand(message);
             if(command)
             {
@@ -199,8 +212,16 @@ void TelegramPollUpdates(void *pvParameters)
             }
             free(data->text[i]);
         }
-        free(data);
-        if(count != 0 ) telegram_set_offset(offset);
+        if(count != 0)
+        {
+            int offset = data->request_id[count - 1] + 1;
+            free(data);
+            telegram_set_offset(offset);
+        }
+        else
+        {
+            free(data);
+        }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

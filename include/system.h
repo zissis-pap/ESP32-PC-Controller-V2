@@ -1,3 +1,6 @@
+#ifndef SYSTEM_H
+#define SYSTEM_H
+
 #include <max7219.h>
 #include <driver/gpio.h>
 #include <definitions.h>
@@ -83,15 +86,9 @@ void SetupNVS(void);
 void SetupDotMatrixDisplay(max7219_t *dev);
 
 /**
- * @brief 
- * 
- */
-void SetupSPIbus(void);
-
-/**
- * @brief 
- * 
- * @param gpio_pins 
+ * @brief
+ *
+ * @param gpio_pins
  */
 void SetupGPIOPins(gpio_config_c *gpio_pins);
 
@@ -142,3 +139,5 @@ void Reset(gpio_config_c *pins, int system_status);
  * @param system_status 
  */
 void ForcePowerOFF(gpio_config_c *pins, int system_status);
+
+#endif // SYSTEM_H

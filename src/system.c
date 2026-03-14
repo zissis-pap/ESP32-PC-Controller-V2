@@ -25,7 +25,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
  */
 void ErrorHandler(void)
 {
-
+    esp_restart();
 }
 
 /**
@@ -127,9 +127,9 @@ void SetupGPIOPins(gpio_config_c *gpio_pins)
 
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
     // Attach interrupt handler
-    gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_1);
-    gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_2);
-    gpio_isr_handler_add(GPIO_NUM_4, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_3);
+    gpio_isr_handler_add(gpio_pins->input_1_gpio, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_1);
+    gpio_isr_handler_add(gpio_pins->input_2_gpio, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_2);
+    gpio_isr_handler_add(gpio_pins->input_3_gpio, gpio_isr_handler, (void *) &gpio_pins->interrupt_gpio_3);
     // Configure output GPIOs
     gpio_config_t io_conf_output = 
     {
@@ -157,7 +157,6 @@ void InitAction(max7219_t *dev)
     esp_netif_ip_info_t ip_info;
     vTaskDelay(pdMS_TO_TICKS(4000));
     // max7219_scroll_text(dev, "PC Controller V2.0", 100);
-    esp_err_t esp_netif_get_ip_info(esp_netif_t *esp_netif, esp_netif_ip_info_t *ip_info);
     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK)
     {
@@ -197,7 +196,7 @@ int ExtractCommand(const char * data)
         {"/reset",              RESET_COMMAND},
         {"/force_power_off",    FORCE_POWER_OFF_COMMAND},
     };
-    for (int i = 0; i < 4; ++i) 
+    for (int i = 0; i < (int)(sizeof(commands) / sizeof(commands[0])); ++i)
     {
         if (strstr(data, commands[i].command) != NULL) 
         {
@@ -234,10 +233,6 @@ void Reset(gpio_config_c *pins, int system_status)
         vTaskDelay(pdMS_TO_TICKS(1000));
         gpio_set_level(pins->output_2_gpio, 1);
     }
-    else
-    {
-
-    }
 }
 
 /**
@@ -253,9 +248,5 @@ void ForcePowerOFF(gpio_config_c *pins, int system_status)
         gpio_set_level(pins->output_1_gpio, 0);
         vTaskDelay(pdMS_TO_TICKS(5000));
         gpio_set_level(pins->output_1_gpio, 1);
-    }
-    else
-    {
-
     }
 }

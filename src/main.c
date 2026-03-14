@@ -26,8 +26,7 @@ void app_main(void)
     xTaskCreate(DotMatrixDisplayMessages, "display_telegram", 2048, &taskParams, 14, NULL);
     
     while(1)
-    {   
+    {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
-    esp_restart(); // If main task exits, restart the system
 }

@@ -9,16 +9,21 @@
 #include <display_user.h>
 
 static const char *TAG = "Telegram";
-static esp_http_client_handle_t client;
+
+typedef struct {
+    char *buffer;
+    int len;
+    int capacity;
+} http_resp_ctx_t;
 
 /**
- * @brief 
- * 
- * @param dev 
- * @param text 
- * @param display_available 
- * @param display_user 
- * @return uint8_t 
+ * @brief
+ *
+ * @param dev
+ * @param text
+ * @param display_available
+ * @param display_user
+ * @return uint8_t
  */
 uint8_t ScrollTelegramMessage(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user)
 {
@@ -32,15 +37,15 @@ uint8_t ScrollTelegramMessage(max7219_t *dev, char *text, bool *display_availabl
 }
 
 /**
- * @brief 
- * 
- * @param evt 
- * @return esp_err_t 
+ * @brief
+ *
+ * @param evt
+ * @return esp_err_t
  */
-static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
+static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
-    static int output_len = 0;       // Stores number of bytes read
-    switch (evt->event_id) 
+    http_resp_ctx_t *ctx = (http_resp_ctx_t *)evt->user_data;
+    switch (evt->event_id)
     {
         case HTTP_EVENT_ERROR:
             ESP_LOGI("HTTP_EVENT", "Error occurred during HTTP request");
@@ -49,14 +54,17 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
             ESP_LOGI("HTTP_EVENT", "Header Sent");
             break;
         case HTTP_EVENT_ON_DATA:
-            if (!esp_http_client_is_chunked_response(client)) 
+            if (!esp_http_client_is_chunked_response(evt->client))
             {
-                memcpy(evt->user_data + output_len, evt->data, evt->data_len);
-                output_len += evt->data_len;
+                int copy_len = evt->data_len;
+                if (ctx->len + copy_len >= ctx->capacity)
+                    copy_len = ctx->capacity - ctx->len - 1;
+                if (copy_len > 0)
+                {
+                    memcpy(ctx->buffer + ctx->len, evt->data, copy_len);
+                    ctx->len += copy_len;
+                }
             }
-            break;
-        case HTTP_EVENT_ON_FINISH:
-            output_len = 0;
             break;
         default:
             break;
@@ -65,27 +73,27 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 }
 
 /**
- * @brief 
- * 
- * @param message 
+ * @brief
+ *
+ * @param message
  */
-void send_telegram_message(const char *message) 
+void send_telegram_message(const char *message)
 {
     if(getWiFiState())
     {
         char *url = make_telegram_url(message, TELEGRAM_SEND_TEXT, 0);
 
-        esp_http_client_config_t config = 
+        esp_http_client_config_t config =
         {
             .url = url,
             .transport_type = HTTP_TRANSPORT_OVER_SSL,
         };
-        
-        client = esp_http_client_init(&config);
+
+        esp_http_client_handle_t client = esp_http_client_init(&config);
         free(url);
         esp_err_t err = esp_http_client_perform(client);
 
-        if (err == ESP_OK) 
+        if (err == ESP_OK)
         {
             ESP_LOGI(TAG, "Message sent successfully");
         }
@@ -101,33 +109,35 @@ void send_telegram_message(const char *message)
 
 /**
  * @brief Get the telegram updates object
- * 
- * @param count 
- * @return TelegramResponse* 
+ *
+ * @param count
+ * @return TelegramResponse*
  */
 TelegramResponse *get_telegram_updates(uint8_t count)
 {
-    char *responseBuffer;
     TelegramResponse *resp_storage = malloc(sizeof(TelegramResponse));
-    memset(resp_storage, 0, sizeof(TelegramResponse)); // Initialize memory
+    memset(resp_storage, 0, sizeof(TelegramResponse));
     if(getWiFiState())
     {
-        responseBuffer = (char*)malloc(4096*sizeof(char));
+        char *responseBuffer = (char*)malloc(4096 * sizeof(char));
+        if (!responseBuffer) return resp_storage;
+
+        http_resp_ctx_t ctx = { .buffer = responseBuffer, .len = 0, .capacity = 4096 };
         char *url = make_telegram_url(NULL, TELEGRAM_GET_UPDATES, 0);
-        
-        esp_http_client_config_t config = 
+
+        esp_http_client_config_t config =
         {
             .url = url,
             .transport_type = HTTP_TRANSPORT_OVER_SSL,
-            .user_data = (char*)responseBuffer,
+            .user_data = &ctx,
             .event_handler = _http_event_handler,
         };
 
-        client = esp_http_client_init(&config);
+        esp_http_client_handle_t client = esp_http_client_init(&config);
         free(url);
         esp_err_t err = esp_http_client_perform(client);
-        
-        if (err == ESP_OK) 
+
+        if (err == ESP_OK)
         {
             ESP_LOGI(TAG, "Request for updates sent successfully");
             parse_telegram_response(resp_storage, responseBuffer, count);
@@ -143,27 +153,27 @@ TelegramResponse *get_telegram_updates(uint8_t count)
 }
 
 /**
- * @brief 
- * 
- * @param offset 
+ * @brief
+ *
+ * @param offset
  */
-void telegram_set_offset(int offset) 
+void telegram_set_offset(int offset)
 {
     if(getWiFiState())
     {
         char *url = make_telegram_url(NULL, TELEGRAM_GET_UPDATES, offset);
 
-        esp_http_client_config_t config = 
+        esp_http_client_config_t config =
         {
             .url = url,
             .transport_type = HTTP_TRANSPORT_OVER_SSL,
         };
-        
-        client = esp_http_client_init(&config);
+
+        esp_http_client_handle_t client = esp_http_client_init(&config);
         free(url);
         esp_err_t err = esp_http_client_perform(client);
 
-        if (err == ESP_OK) 
+        if (err == ESP_OK)
         {
             ESP_LOGI(TAG, "Message sent successfully");
         }
@@ -178,12 +188,12 @@ void telegram_set_offset(int offset)
 }
 
 /**
- * @brief 
- * 
- * @param message 
- * @param select 
- * @param offset 
- * @return char* 
+ * @brief
+ *
+ * @param message
+ * @param select
+ * @param offset
+ * @return char*
  */
 char *make_telegram_url(const char *message, uint8_t select, int offset)
 {
@@ -192,7 +202,7 @@ char *make_telegram_url(const char *message, uint8_t select, int offset)
     const char *telegram_token = TELEGRAM_BOT_TOKEN;
     const char *telegram_chatid = TELEGRAM_CHAT_ID;
     url = (char*)malloc(512*sizeof(char));
-    
+
     if(select == TELEGRAM_SEND_TEXT)
     {
         sprintf(url, "%s%s/sendMessage?chat_id=%s&text=%s", telegram_url, telegram_token, telegram_chatid, message);
@@ -206,22 +216,22 @@ char *make_telegram_url(const char *message, uint8_t select, int offset)
 }
 
 /**
- * @brief 
- * 
- * @param saved_data 
- * @param response 
- * @param count 
+ * @brief
+ *
+ * @param saved_data
+ * @param response
+ * @param count
  */
-void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8_t count) 
+void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8_t count)
 {
     cJSON *json = cJSON_Parse(response);
-    if (json == NULL) 
+    if (json == NULL)
     {
         ESP_LOGE("JSON", "Failed to parse JSON response");
         return;
     }
     cJSON *result = cJSON_GetObjectItem(json, "result");
-    if (result == NULL) 
+    if (result == NULL)
     {
         printf("\"result\" key not found\n");
         cJSON_Delete(json);
@@ -230,25 +240,25 @@ void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8
     saved_data->count = cJSON_GetArraySize(result);
     int offset = saved_data->count - count;
     offset = fmax(offset, 0);
-    for (int i = 0; i < saved_data->count; i++) 
+    for (int i = 0; i < saved_data->count; i++)
     {
         cJSON *item = cJSON_GetArrayItem(result, i);
         if (item == NULL) continue;
 
-        cJSON *update_id = cJSON_GetObjectItem(item, "update_id"); // Get "update_id"
-        if (cJSON_IsNumber(update_id)) 
+        cJSON *update_id = cJSON_GetObjectItem(item, "update_id");
+        if (cJSON_IsNumber(update_id))
         {
             if (i >= offset) saved_data->request_id[i-offset] = update_id->valueint;
-        } 
+        }
 
-        cJSON *message = cJSON_GetObjectItem(item, "message"); // Get "message" object
-        if (message == NULL) 
+        cJSON *message = cJSON_GetObjectItem(item, "message");
+        if (message == NULL)
         {
             continue;
         }
 
-        cJSON *text = cJSON_GetObjectItem(message, "text"); // Get "text" from "message"
-        if (cJSON_IsString(text)) 
+        cJSON *text = cJSON_GetObjectItem(message, "text");
+        if (cJSON_IsString(text))
         {
             if (i >= offset)
             {
@@ -256,7 +266,7 @@ void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8
                 saved_data->text[i-offset] = (char*)calloc((text_len + 1), sizeof(char));
                 memcpy(saved_data->text[i-offset], text->valuestring, text_len);
             }
-        } 
+        }
     }
     cJSON_Delete(json);
 }

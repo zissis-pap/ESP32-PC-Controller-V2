@@ -1,8 +1,10 @@
+#ifndef TASKS_H
+#define TASKS_H
 
 /**
- * @brief 
- * 
- * @param pvParameters 
+ * @brief
+ *
+ * @param pvParameters
  */
 void PowerController(void *pvParameters);
 
@@ -40,3 +42,5 @@ void DotMatrixDisplayTime(void *pvParameters);
  * @param pvParameters 
  */
 void TelegramPollUpdates(void *pvParameters);
+
+#endif // TASKS_H

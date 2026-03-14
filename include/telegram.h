@@ -1,3 +1,6 @@
+#ifndef TELEGRAM_H
+#define TELEGRAM_H
+
 #include <max7219.h>
 
 #define TELEGRAM_GET_UPDATES    0 
@@ -67,3 +70,5 @@ void parse_telegram_response(TelegramResponse *saved_data, char *response, uint8
  * @return uint8_t 
  */
 uint8_t ScrollTelegramMessage(max7219_t *dev, char *text, bool *display_available, uint8_t *display_user);
+
+#endif // TELEGRAM_H

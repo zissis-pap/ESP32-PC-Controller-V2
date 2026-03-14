@@ -8,18 +8,23 @@
 #include <display_user.h>
 
 static const char* TAG = "NEWS";
-static esp_http_client_handle_t client;
+
+typedef struct {
+    char *buffer;
+    int len;
+    int capacity;
+} http_resp_ctx_t;
 
 /**
- * @brief 
- * 
- * @param evt 
- * @return esp_err_t 
+ * @brief
+ *
+ * @param evt
+ * @return esp_err_t
  */
-static esp_err_t _http_event_handler(esp_http_client_event_t *evt) 
+static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
-    static int output_len = 0;       // Stores number of bytes read
-    switch (evt->event_id) 
+    http_resp_ctx_t *ctx = (http_resp_ctx_t *)evt->user_data;
+    switch (evt->event_id)
     {
         case HTTP_EVENT_ERROR:
             ESP_LOGI("HTTP_EVENT", "Error occurred during HTTP request");
@@ -28,14 +33,17 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
             ESP_LOGI("HTTP_EVENT", "Header Sent");
             break;
         case HTTP_EVENT_ON_DATA:
-            if (!esp_http_client_is_chunked_response(client)) 
+            if (!esp_http_client_is_chunked_response(evt->client))
             {
-                memcpy(evt->user_data + output_len, evt->data, evt->data_len);
-                output_len += evt->data_len;
+                int copy_len = evt->data_len;
+                if (ctx->len + copy_len >= ctx->capacity)
+                    copy_len = ctx->capacity - ctx->len - 1;
+                if (copy_len > 0)
+                {
+                    memcpy(ctx->buffer + ctx->len, evt->data, copy_len);
+                    ctx->len += copy_len;
+                }
             }
-            break;
-        case HTTP_EVENT_ON_FINISH:
-             output_len = 0;
             break;
         default:
             break;
@@ -68,15 +76,16 @@ char *receive_news(void)
         return NULL;
     }
 
-    esp_http_client_config_t config = 
+    http_resp_ctx_t ctx = { .buffer = responseBuffer, .len = 0, .capacity = NEWS_ARRAY_SIZE };
+    esp_http_client_config_t config =
     {
         .url = url,
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
-        .user_data = (char*)responseBuffer,
+        .user_data = &ctx,
         .event_handler = _http_event_handler,
     };
 
-    client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = esp_http_client_init(&config);
     if (!client)
     {
         ESP_LOGE(TAG, "Failed to initialize HTTP client");
